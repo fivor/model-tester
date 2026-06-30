@@ -14,8 +14,10 @@
 
 - **多渠道管理** — 添加多个 API 端点（名称、接口地址、密钥），支持导入/导出 JSON
 - **模型发现** — 从每个渠道拉取 `/models` 列表，汇总展示所有可用模型
-- **聊天测试** — 流式请求 `/chat/completions`，测量首 Token 时间（TTFT）、总延迟、Token 用量
+- **Benchmark 测试** — 流式请求 `/chat/completions`，支持多轮重复测试，统计平均耗时、p95、TTFT、Token/s、成功率
 - **工具调用测试** — 测试 Function Calling 能力，支持 `tool_choice` 强制调用 → 自动回退
+- **兼容性矩阵** — 汇总 `/models`、流式、usage、工具调用、JSON mode、响应头可读性等兼容状态
+- **安全导出** — 渠道配置支持普通导出和不含 API Key 的安全导出
 - **并发控制** — 可配置并发数（1 / 3 / 5 / 10），批量测试更快
 - **历史记录** — 测试结果持久化到 `localStorage`，模型列表显示彩色历史点
 - **导出结果** — 支持 JSON 和 CSV 格式下载
@@ -47,14 +49,17 @@
 3. 点击「**测试选中**」开始测试
 
 每个模型会依次进行：
-- **聊天测试**：发送 `"Say exactly: hello"`，验证响应内容，记录 TTFT 和总延迟
+- **Benchmark 测试**：发送 `"Say exactly: hello"`，按设置轮次重复测试，记录 TTFT、总延迟、Token/s、p95 和成功率
 - **工具调用测试**：发送天气查询，强制调用 `get_weather` 工具，验证是否返回 tool_calls
+- **JSON mode 测试**：使用 `response_format: { type: "json_object" }` 验证 JSON 输出兼容性
 
 #### 第四步：查看结果
 
 结果表格显示每个模型的：
 - **聊天**：通过 / 失败 + TTFT + 总延迟 + Token 用量 + 响应预览
 - **工具**：通过 / 部分 / 失败 + 函数名 + 参数 + 耗时
+- **Benchmark**：平均总耗时、p95、平均 TTFT、Token/s、成功轮次
+- **兼容性矩阵**：按模型和渠道展示流式、usage、tools、JSON、headers 等能力
 
 点击「导出 JSON」或「导出 CSV」可下载完整结果。
 
@@ -78,8 +83,10 @@ A single-page static web app for testing OpenAI-compatible API endpoints. No bac
 
 - **Channel Management** — Add multiple API endpoints (name, base URL, API key). Import/export as JSON
 - **Model Discovery** — Fetch `/models` from each channel and list all available models
-- **Chat Test** — Streaming `/chat/completions` with TTFT, total latency, and token usage measurement
+- **Benchmark Test** — Streaming `/chat/completions` with repeated runs, average latency, p95, TTFT, token/s, and success-rate metrics
 - **Tool Calling Test** — Tests Function Calling with forced `tool_choice` → auto fallback
+- **Compatibility Matrix** — Summarizes `/models`, streaming, usage, tools, JSON mode, and readable response headers
+- **Safe Export** — Export channel config with or without API keys
 - **Concurrency Control** — Configurable pool size (1 / 3 / 5 / 10) for batch testing
 - **Test History** — Results persisted in `localStorage`, shown as colored dots in the model list
 - **Export Results** — Download as JSON or CSV
@@ -111,8 +118,9 @@ Click **Fetch models** — the tool calls `/models` on each channel and aggregat
 3. Click **Test selected**
 
 Each model runs two tests:
-- **Chat**: Sends `"Say exactly: hello"`, validates the response, records TTFT and total latency
+- **Benchmark**: Sends `"Say exactly: hello"` for the configured number of runs and records TTFT, total latency, token/s, p95, and success rate
 - **Tools**: Sends a weather query with a forced `get_weather` tool call, checks for `tool_calls` in the response
+- **JSON mode**: Sends a `response_format: { type: "json_object" }` request and validates parseable JSON output
 
 #### Step 4: View Results
 

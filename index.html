@@ -12,6 +12,7 @@
     --bg:         #09090b;
     --panel:      #0f1011;
     --surface:    #191a1b;
+    --surface2:   #202226;
     --hover:      rgba(255,255,255,0.03);
     --text:       #f7f8f8;
     --text2:      #d0d6e0;
@@ -26,6 +27,9 @@
     --border:     rgba(255,255,255,0.05);
     --border2:    rgba(255,255,255,0.08);
     --border3:    rgba(255,255,255,0.06);
+    --shadow:     0 18px 50px rgba(0,0,0,0.28);
+    --shadow2:    0 1px 2px rgba(0,0,0,0.18);
+    --ring:       rgba(113,112,255,0.22);
     --font:       'Inter', -apple-system, system-ui, sans-serif;
     --mono:       ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, monospace;
   }
@@ -33,23 +37,27 @@
   *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
   [data-theme="light"] {
-    --bg: #ffffff;
-    --panel: #f9f9fb;
-    --surface: #f0f0f3;
-    --hover: rgba(0,0,0,0.03);
-    --text: #1a1a1a;
-    --text2: #3d3d3d;
-    --text3: #6b6b6b;
-    --text4: #9a9a9a;
+    --bg: #f6f7fb;
+    --panel: #ffffff;
+    --surface: #eef0f5;
+    --surface2: #e5e8f0;
+    --hover: rgba(28,35,55,0.045);
+    --text: #10131a;
+    --text2: #303642;
+    --text3: #687082;
+    --text4: #9aa2b2;
     --accent: #5e6ad2;
-    --accent2: #7170ff;
-    --accent3: #828fff;
-    --green: #10b981;
-    --red: #ef4444;
-    --amber: #f59e0b;
-    --border: rgba(0,0,0,0.06);
-    --border2: rgba(0,0,0,0.10);
-    --border3: rgba(0,0,0,0.08);
+    --accent2: #6366f1;
+    --accent3: #7c83ff;
+    --green: #059669;
+    --red: #dc2626;
+    --amber: #d97706;
+    --border: rgba(21,28,43,0.07);
+    --border2: rgba(21,28,43,0.12);
+    --border3: rgba(21,28,43,0.09);
+    --shadow: 0 18px 48px rgba(30,41,59,0.10);
+    --shadow2: 0 1px 2px rgba(15,23,42,0.06);
+    --ring: rgba(99,102,241,0.22);
   }
 
   html {
@@ -66,7 +74,7 @@
     font-size: 15px;
     font-weight: 400;
     line-height: 1.6;
-    letter-spacing: -0.165px;
+    letter-spacing: 0;
     min-height: 100vh;
   }
 
@@ -74,18 +82,22 @@
 
   /* Page shell */
   .page {
-    max-width: 840px;
+    max-width: 1080px;
     margin: 0 auto;
-    padding: 80px 24px 120px;
+    padding: 56px 32px 96px;
   }
 
   /* Header */
-  .header { margin-bottom: 80px; }
+  .header {
+    margin-bottom: 56px;
+    padding-bottom: 28px;
+    border-bottom: 1px solid var(--border);
+  }
   .header h1 {
-    font-size: 48px;
+    font-size: 46px;
     font-weight: 510;
-    line-height: 1.0;
-    letter-spacing: -1.056px;
+    line-height: 1.05;
+    letter-spacing: 0;
     color: var(--text);
     margin-bottom: 14px;
   }
@@ -93,45 +105,68 @@
     font-size: 17px;
     font-weight: 400;
     line-height: 1.6;
-    letter-spacing: -0.165px;
+    letter-spacing: 0;
     color: var(--text3);
-    max-width: 540px;
+    max-width: 620px;
   }
 
   /* Sections */
-  .section { margin-bottom: 80px; }
+  .section { margin-bottom: 48px; }
   .section-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 16px;
+    gap: 16px;
+    margin-bottom: 14px;
   }
   .section-label {
     font-size: 12px;
     font-weight: 510;
     text-transform: uppercase;
-    color: var(--text4);
+    color: var(--text3);
     letter-spacing: 0.3px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-label::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: var(--accent2);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent2) 12%, transparent);
   }
   .section-header-actions {
     display: flex;
-    gap: 4px;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    padding: 4px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: var(--shadow2);
   }
   /* Channel cards */
   .channels {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 10px;
   }
   .channel {
     background: var(--panel);
-    border: none;
+    border: 1px solid var(--border);
     border-radius: 8px;
-    padding: 20px 24px;
-    transition: background 0.15s ease;
+    padding: 22px 24px;
+    box-shadow: var(--shadow2);
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
   }
   .channel:hover {
-    background: rgba(255, 255, 255, 0.025);
+    background: var(--panel);
+    border-color: var(--border2);
+    box-shadow: var(--shadow);
+    transform: translateY(-1px);
   }
   .channel-name {
     display: flex;
@@ -143,7 +178,7 @@
     font-size: 14px;
     font-weight: 510;
     color: var(--text);
-    letter-spacing: -0.182px;
+    letter-spacing: 0;
     flex: 1;
   }
   .channel-name .dot {
@@ -173,7 +208,8 @@
   }
   .field input {
     width: 100%;
-    padding: 8px 12px;
+    min-height: 38px;
+    padding: 9px 12px;
     background: rgba(255, 255, 255, 0.02);
     border: 1px solid var(--border2);
     border-radius: 6px;
@@ -186,8 +222,7 @@
   .field input::placeholder { color: var(--text4); }
   .field input:focus {
     border-color: var(--accent2);
-    box-shadow: 0 0 0 1px rgba(113, 112, 255, 0.12),
-                rgba(0, 0, 0, 0.1) 0px 4px 12px;
+    box-shadow: 0 0 0 3px var(--ring);
   }
 
   /* Buttons */
@@ -195,6 +230,7 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
+    min-height: 34px;
     padding: 7px 14px;
     border: 1px solid var(--border2);
     border-radius: 6px;
@@ -215,6 +251,7 @@
   .btn--primary:hover {
     background: var(--accent3);
     border-color: var(--accent3);
+    transform: translateY(-1px);
   }
   .btn--primary:disabled { opacity: 0.4; pointer-events: none; }
   .btn--ghost {
@@ -222,7 +259,11 @@
     color: var(--text2);
     border-color: var(--border2);
   }
-  .btn--ghost:hover { background: rgba(255, 255, 255, 0.05); }
+  .btn--ghost:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: var(--border2);
+    color: var(--text);
+  }
   .btn--ghost:disabled { opacity: 0.35; pointer-events: none; }
   .btn--danger {
     background: transparent;
@@ -231,22 +272,41 @@
   }
   .btn--danger:hover { background: rgba(239, 68, 68, 0.06); }
   .btn--sm { padding: 4px 10px; font-size: 12px; }
-  .btn--tiny { padding: 2px 8px; font-size: 11px; }
+  .btn--tiny { min-height: 28px; padding: 3px 9px; font-size: 11px; }
+  .btn:focus-visible,
+  .toggle-btn:focus-visible,
+  .conc-control select:focus-visible,
+  .select-links a:focus-visible {
+    outline: none;
+    border-color: var(--accent2);
+    box-shadow: 0 0 0 3px var(--ring);
+  }
 
   .action-row {
     display: flex;
     gap: 8px;
-    margin-top: 14px;
+    margin-top: 16px;
     align-items: center;
     flex-wrap: wrap;
   }
   .action-row--between { justify-content: space-between; }
 
+  #fetchSection {
+    margin-top: -8px;
+  }
+  #fetchSection .action-row {
+    padding: 14px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: var(--shadow2);
+  }
+
   .status-line {
     font-size: 13px;
     color: var(--text4);
     margin-top: 10px;
-    letter-spacing: -0.13px;
+    letter-spacing: 0;
   }
   .status-line.ok { color: var(--green); }
   .status-line.err { color: var(--red); }
@@ -256,7 +316,7 @@
     display: flex;
     gap: 6px;
     align-items: center;
-    margin-bottom: 8px;
+    margin: 8px 0 10px;
     flex-wrap: wrap;
   }
   .filter-chip {
@@ -270,7 +330,7 @@
     cursor: pointer;
     border: 1px solid var(--border2);
     color: var(--text4);
-    background: transparent;
+    background: var(--panel);
     transition: all 0.12s ease;
     user-select: none;
   }
@@ -288,15 +348,20 @@
   .model-scroll {
     max-height: 380px;
     overflow-y: auto;
-    margin-top: 8px;
-    padding: 2px 0;
+    margin-top: 12px;
+    padding: 6px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: var(--shadow2);
   }
   .model-row {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 6px 10px;
-    border-radius: 4px;
+    min-height: 36px;
+    padding: 7px 10px;
+    border-radius: 6px;
     cursor: pointer;
     font-size: 13px;
     font-family: var(--mono);
@@ -317,7 +382,7 @@
     font-family: var(--font);
     font-feature-settings: "cv01", "ss03";
     padding: 1px 6px;
-    border-radius: 3px;
+    border-radius: 999px;
     border: 1px solid var(--border);
     display: inline-flex;
     align-items: center;
@@ -333,22 +398,37 @@
   /* Select row */
   .select-links {
     display: flex;
-    gap: 16px;
-    margin-bottom: 6px;
+    gap: 4px;
+    margin: 10px 0 8px;
     font-size: 12px;
     font-weight: 510;
+    align-items: center;
+    flex-wrap: wrap;
   }
   .select-links a {
     color: var(--text4);
     text-decoration: none;
     cursor: pointer;
     transition: color 0.1s ease;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    padding: 3px 8px;
   }
-  .select-links a:hover { color: var(--text3); }
+  .select-links a:hover {
+    color: var(--text2);
+    background: var(--hover);
+    border-color: var(--border);
+  }
   .select-hint { font-size: 12px; color: var(--text4); }
 
   /* Results table */
-  .table-wrap { overflow-x: auto; }
+  .table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--panel);
+    box-shadow: var(--shadow2);
+  }
   table {
     width: 100%;
     border-collapse: collapse;
@@ -356,16 +436,17 @@
   }
   thead th {
     text-align: left;
-    padding: 10px 12px;
+    padding: 11px 14px;
     font-size: 11px;
     font-weight: 510;
     text-transform: uppercase;
     color: var(--text4);
     letter-spacing: 0.2px;
     border-bottom: 1px solid var(--border);
+    background: color-mix(in srgb, var(--surface) 55%, transparent);
   }
   tbody td {
-    padding: 12px 12px;
+    padding: 13px 14px;
     border-bottom: 1px solid var(--border);
     vertical-align: middle;
     color: var(--text2);
@@ -387,7 +468,7 @@
     color: var(--text4);
     background: rgba(255, 255, 255, 0.02);
     padding: 2px 8px;
-    border-radius: 4px;
+    border-radius: 999px;
     border: 1px solid var(--border);
   }
   .cell-source .sdot {
@@ -401,7 +482,7 @@
     display: inline-flex;
     align-items: center;
     gap: 5px;
-    padding: 2px 10px 2px 6px;
+    padding: 2px 10px 2px 7px;
     border-radius: 9999px;
     font-size: 12px;
     font-weight: 510;
@@ -442,10 +523,10 @@
 
   /* Progress */
   .progress {
-    height: 2px;
+    height: 4px;
     background: rgba(255, 255, 255, 0.03);
-    margin-top: 20px;
-    border-radius: 1px;
+    margin-top: 18px;
+    border-radius: 999px;
     overflow: hidden;
     opacity: 0;
     transition: opacity 0.2s ease;
@@ -464,16 +545,22 @@
     align-items: center;
     gap: 6px;
     font-size: 12px;
-    color: var(--text4);
+    color: var(--text3);
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    min-height: 34px;
+    padding: 4px 6px 4px 10px;
+    box-shadow: var(--shadow2);
   }
   .conc-control select {
-    background: rgba(255,255,255,0.02);
-    border: 1px solid var(--border2);
-    border-radius: 4px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
     color: var(--text2);
     font-size: 12px;
     font-family: var(--mono);
-    padding: 2px 6px;
+    padding: 3px 8px;
     outline: none;
     cursor: pointer;
   }
@@ -481,14 +568,15 @@
 
   /* Footnote */
   .footnote {
-    padding: 16px 20px;
+    padding: 16px 18px;
     background: rgba(94, 106, 210, 0.03);
-    border: 1px solid rgba(94, 106, 210, 0.06);
+    border: 1px solid rgba(94, 106, 210, 0.14);
     border-radius: 8px;
     font-size: 13px;
     color: var(--text3);
     line-height: 1.7;
-    letter-spacing: -0.13px;
+    letter-spacing: 0;
+    box-shadow: var(--shadow2);
   }
   .footnote strong { color: var(--text2); font-weight: 590; }
   .footnote code {
@@ -582,6 +670,32 @@
   }
   .auth-badge--na::before { background: var(--text4); }
 
+  .metric-stack {
+    display: grid;
+    gap: 3px;
+    min-width: 150px;
+    font-size: 11px;
+    color: var(--text3);
+    padding: 2px 0;
+  }
+  .metric-main {
+    color: var(--text2);
+    font-family: var(--mono);
+  }
+  .metric-sub {
+    color: var(--text4);
+    font-family: var(--mono);
+  }
+  .compat-table th,
+  .compat-table td {
+    text-align: center;
+    white-space: nowrap;
+  }
+  .compat-table td:first-child,
+  .compat-table td:nth-child(2) {
+    text-align: left;
+  }
+
   .resp-model-tag {
     display: inline-block;
     margin-left: 6px;
@@ -634,7 +748,8 @@
   .compare-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.6);
+    background: rgba(0,0,0,0.58);
+    backdrop-filter: blur(4px);
     z-index: 200;
     display: none;
     align-items: center;
@@ -645,12 +760,13 @@
   .compare-modal {
     background: var(--bg);
     border: 1px solid var(--border2);
-    border-radius: 12px;
+    border-radius: 8px;
     max-width: 95vw;
     max-height: 85vh;
     overflow: auto;
     padding: 32px;
     position: relative;
+    box-shadow: var(--shadow);
   }
   .compare-modal h2 {
     font-size: 20px;
@@ -796,8 +912,8 @@
 
   /* Fingerprint section */
   .fp-section {
-    margin-top: 12px;
-    padding-top: 12px;
+    margin-top: 14px;
+    padding-top: 14px;
     border-top: 1px solid var(--border);
   }
 
@@ -814,14 +930,22 @@
 
   /* Responsive */
   @media (max-width: 640px) {
-    .page { padding: 40px 16px 80px; }
+    .page { padding: 36px 16px 80px; }
     .header h1 { font-size: 32px; }
-    .header { margin-bottom: 48px; }
-    .section { margin-bottom: 48px; }
+    .header { margin-bottom: 36px; }
+    .section { margin-bottom: 36px; }
+    .section-header {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+    .section-header-actions { justify-content: flex-start; }
     .channel-fields {
       grid-template-columns: 1fr;
     }
     .header-top { flex-wrap: wrap; gap: 12px; }
+    .action-row--between { justify-content: flex-start; }
+    .model-row { align-items: flex-start; }
+    .table-wrap { margin-left: -2px; margin-right: -2px; }
   }
 
   /* Light theme overrides for hardcoded rgba values */
@@ -861,12 +985,18 @@
   .header-controls {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
+    padding: 4px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: var(--shadow2);
   }
   .toggle-btn {
     display: inline-flex;
     align-items: center;
     gap: 5px;
+    min-height: 30px;
     padding: 4px 10px;
     border: 1px solid var(--border2);
     border-radius: 6px;
@@ -882,6 +1012,7 @@
   .toggle-btn:hover {
     color: var(--text2);
     background: var(--hover);
+    border-color: var(--border2);
   }
 </style>
 </head>
@@ -905,6 +1036,7 @@
       <div class="section-label" id="lblChannels">Channels</div>
       <div class="section-header-actions">
         <button class="btn btn--ghost btn--tiny" onclick="exportChannels()" id="btnExportCh">Export</button>
+        <button class="btn btn--ghost btn--tiny" onclick="exportChannels(false)" id="btnExportSafeCh">Safe export</button>
         <button class="btn btn--ghost btn--tiny" onclick="document.getElementById('importFile').click()" id="btnImportCh">Import</button>
         <input type="file" id="importFile" accept=".json" style="display:none" onchange="importChannels(this)">
       </div>
@@ -939,7 +1071,7 @@
     <div class="action-row action-row--between">
       <div style="display:flex;gap:8px;align-items:center;">
         <button class="btn btn--primary" id="btnTest" onclick="testSelected()" disabled>Performance Test</button>
-        <button class="btn btn--ghost" id="btnVerify" onclick="verifySelected()" disabled style="display:none">Authenticity Check</button>
+        <button class="btn btn--ghost" id="btnVerify" onclick="verifySelected()" disabled>Authenticity Check</button>
         <span class="select-hint" id="selectedCount"></span>
       </div>
       <div class="conc-control">
@@ -949,6 +1081,14 @@
           <option value="3" selected>3</option>
           <option value="5">5</option>
           <option value="10">10</option>
+        </select>
+      </div>
+      <div class="conc-control">
+        <span id="lblRuns">Runs</span>
+        <select id="benchRuns">
+          <option value="1" selected>1</option>
+          <option value="3">3</option>
+          <option value="5">5</option>
         </select>
       </div>
     </div>
@@ -967,8 +1107,31 @@
     </div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th id="thModel">Model</th><th id="thChannel">Channel</th><th id="thChat">Chat</th><th id="thTools">Tools</th><th id="thAuth">Authenticity</th></tr></thead>
+        <thead><tr><th id="thModel">Model</th><th id="thChannel">Channel</th><th id="thChat">Chat</th><th id="thTools">Tools</th><th id="thBench">Benchmark</th><th id="thAuth">Authenticity</th></tr></thead>
         <tbody id="resultsBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section" id="compatSection" style="display:none;">
+    <div class="section-header">
+      <div class="section-label" id="lblCompat">Compatibility matrix</div>
+    </div>
+    <div class="table-wrap">
+      <table class="compat-table">
+        <thead>
+          <tr>
+            <th id="thCompatModel">Model</th>
+            <th id="thCompatChannel">Channel</th>
+            <th id="thCompatModels">/models</th>
+            <th id="thCompatStream">Stream</th>
+            <th id="thCompatUsage">Usage</th>
+            <th id="thCompatTools">Tools</th>
+            <th id="thCompatJson">JSON</th>
+            <th id="thCompatHeaders">Headers</th>
+          </tr>
+        </thead>
+        <tbody id="compatBody"></tbody>
       </table>
     </div>
   </div>
@@ -1006,6 +1169,7 @@ const LANG = {
     desc: 'Add one or more endpoints, discover models, and verify chat + tool-calling across all channels.',
     channels: 'Channels',
     export: 'Export',
+    exportSafe: 'Safe export',
     import: 'Import',
     addChannel: '+ Add channel',
     name: 'Name',
@@ -1023,6 +1187,7 @@ const LANG = {
     testSelected: 'Performance Test',
     testing: 'Testing…',
     concurrency: 'Concurrency',
+    runs: 'Runs',
     selected: 'selected',
     results: 'Results',
     exportJson: 'Export JSON',
@@ -1031,6 +1196,7 @@ const LANG = {
     channel: 'Channel',
     chat: 'Chat',
     tools: 'Tools',
+    benchmark: '基准',
     pass: 'Pass',
     fail: 'Fail',
     partial: 'Partial',
@@ -1039,6 +1205,7 @@ const LANG = {
     channelRemoved: 'Channel removed',
     keepOne: 'Keep at least one channel',
     channelsExported: 'Channels exported',
+    channelsSafeExported: 'Channels exported without API keys',
     imported: (n) => `Imported ${n} channel${n>1?'s':''}`,
     noValidChannels: 'No valid channels in file',
     importFailed: (msg) => `Import failed: ${msg}`,
@@ -1099,10 +1266,21 @@ const LANG = {
     compareL3Knowledge: 'L3 Knowledge',
     compareL4Capability: 'L4 Capability',
     compareVerdict: 'Verdict',
+    compatibility: 'Compatibility matrix',
+    compatModels: '/models',
+    compatStream: 'Stream',
+    compatUsage: '用量',
+    compatJson: 'JSON',
+    compatHeaders: 'Headers',
+    compatOk: 'OK',
+    compatWarn: 'Partial',
+    compatFail: 'Fail',
+    compatNa: 'N/A',
     fpExport: 'Export fingerprints',
     fpImport: 'Import fingerprints',
     fpExported: 'Fingerprint library exported',
     fpImported: (n) => `Imported ${n} fingerprint entries`,
+    fpImportSkipped: (n) => `${n} unsafe fingerprint entries skipped`,
     fpImportFailed: 'Import failed: invalid format',
     historyTitle: 'History',
     historyDegraded: 'Quality degraded',
@@ -1113,6 +1291,7 @@ const LANG = {
     desc: '添加一个或多个 API 端点，发现模型，验证聊天和工具调用能力。',
     channels: '渠道',
     export: '导出',
+    exportSafe: '安全导出',
     import: '导入',
     addChannel: '+ 添加渠道',
     name: '名称',
@@ -1130,6 +1309,7 @@ const LANG = {
     testSelected: '性能测试',
     testing: '测试中…',
     concurrency: '并发数',
+    runs: '轮次',
     selected: '已选',
     results: '结果',
     exportJson: '导出 JSON',
@@ -1138,6 +1318,7 @@ const LANG = {
     channel: '渠道',
     chat: '聊天',
     tools: '工具',
+    benchmark: 'Benchmark',
     pass: '通过',
     fail: '失败',
     partial: '部分',
@@ -1146,6 +1327,7 @@ const LANG = {
     channelRemoved: '已移除渠道',
     keepOne: '至少保留一个渠道',
     channelsExported: '渠道已导出',
+    channelsSafeExported: '渠道已导出（不含密钥）',
     imported: (n) => `已导入 ${n} 个渠道`,
     noValidChannels: '文件中没有有效渠道',
     importFailed: (msg) => `导入失败: ${msg}`,
@@ -1206,10 +1388,21 @@ const LANG = {
     compareL3Knowledge: 'L3 知识',
     compareL4Capability: 'L4 能力',
     compareVerdict: '综合判定',
+    compatibility: '兼容性矩阵',
+    compatModels: '/models',
+    compatStream: '流式',
+    compatUsage: 'Usage',
+    compatJson: 'JSON',
+    compatHeaders: '响应头',
+    compatOk: '通过',
+    compatWarn: '部分',
+    compatFail: '失败',
+    compatNa: '—',
     fpExport: '导出指纹库',
     fpImport: '导入指纹库',
     fpExported: '指纹库已导出',
     fpImported: (n) => `已导入 ${n} 条指纹配置`,
+    fpImportSkipped: (n) => `已跳过 ${n} 条不安全指纹配置`,
     fpImportFailed: '导入失败：格式无效',
     historyTitle: '历史',
     historyDegraded: '质量下降',
@@ -1244,6 +1437,7 @@ function applyLang() {
   document.getElementById('appDesc').textContent = t('desc');
   document.getElementById('lblChannels').textContent = t('channels');
   document.getElementById('btnExportCh').textContent = t('export');
+  document.getElementById('btnExportSafeCh').textContent = t('exportSafe');
   document.getElementById('btnImportCh').textContent = t('import');
   document.getElementById('btnAddCh').textContent = t('addChannel');
   document.getElementById('btnFetch').textContent = t('fetchModels');
@@ -1256,6 +1450,7 @@ function applyLang() {
   document.getElementById('btnTest').textContent = t('testSelected');
   document.getElementById('btnVerify').textContent = t('verify');
   document.getElementById('lblConc').textContent = t('concurrency');
+  document.getElementById('lblRuns').textContent = t('runs');
   document.getElementById('lblResults').textContent = t('results');
   document.getElementById('btnCompare').textContent = t('compare');
   document.getElementById('btnExpJson').textContent = t('exportJson');
@@ -1264,7 +1459,17 @@ function applyLang() {
   document.getElementById('thChannel').textContent = t('channel');
   document.getElementById('thChat').textContent = t('chat');
   document.getElementById('thTools').textContent = t('tools');
+  document.getElementById('thBench').textContent = t('benchmark');
   document.getElementById('thAuth').textContent = t('authenticity');
+  document.getElementById('lblCompat').textContent = t('compatibility');
+  document.getElementById('thCompatModel').textContent = t('model');
+  document.getElementById('thCompatChannel').textContent = t('channel');
+  document.getElementById('thCompatModels').textContent = t('compatModels');
+  document.getElementById('thCompatStream').textContent = t('compatStream');
+  document.getElementById('thCompatUsage').textContent = t('compatUsage');
+  document.getElementById('thCompatTools').textContent = t('tools');
+  document.getElementById('thCompatJson').textContent = t('compatJson');
+  document.getElementById('thCompatHeaders').textContent = t('compatHeaders');
   document.getElementById('compareTitle').textContent = t('compareTitle');
   document.getElementById('btnFpExport').textContent = t('fpExport');
   document.getElementById('btnFpImport').textContent = t('fpImport');
@@ -1276,6 +1481,7 @@ function applyLang() {
   renderChannels();
   if (models.length) renderModelList();
   if (Object.keys(results).length) renderResults();
+  if (Object.keys(results).length) renderCompatibility();
   onCheck();
 }
 const D_COLOR = ['dot--0','dot--1','dot--2','dot--3','dot--4'];
@@ -1342,15 +1548,17 @@ function renderChannels() {
 function updateCh(idx, field, val) { channels[idx][field]=val.trim(); persist(); }
 
 // Import / Export
-function exportChannels() {
-  const exp = channels.map(ch => ({ name:ch.name, baseUrl:ch.baseUrl, apiKey:ch.apiKey }));
+function exportChannels(includeKeys = true) {
+  const exp = channels.map(ch => includeKeys
+    ? { name:ch.name, baseUrl:ch.baseUrl, apiKey:ch.apiKey }
+    : { name:ch.name, baseUrl:ch.baseUrl });
   const blob = new Blob([JSON.stringify(exp, null, 2)], { type:'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'channels.json';
+  a.download = includeKeys ? 'channels.json' : 'channels.safe.json';
   a.click();
   URL.revokeObjectURL(a.href);
-  toast(t('channelsExported'));
+  toast(includeKeys ? t('channelsExported') : t('channelsSafeExported'));
 }
 
 function importChannels(input) {
@@ -1422,6 +1630,7 @@ async function fetchAllModels() {
   models=[]; results={};
   document.getElementById('modelSection').style.display='none';
   document.getElementById('resultsSection').style.display='none';
+  document.getElementById('compatSection').style.display='none';
   const st = document.getElementById('fetchStatus'); st.className='status-line';
   const btn = document.getElementById('btnFetch');
   btn.disabled=true; btn.textContent=t('fetching');
@@ -1950,16 +2159,21 @@ const CAPABILITY_TESTS = [
   {
     name: 'reasoning_cn',
     prompt: '一个房间里有100个杀手，你进去杀了1个，请问房间里还有几个杀手？只回答数字，不要解释。',
+    checkType: 'regex',
+    checkValue: '^100$',
     check: (r) => /^100$/.test(r.trim())
   },
   {
     name: 'instruction_en',
     prompt: 'Reply with EXACTLY 5 words (no more, no less): What color is the sky?',
+    checkType: 'word_count',
+    checkValue: 5,
     check: (r) => { const words = r.trim().replace(/[.!?,;:]/g, '').split(/\s+/).filter(w => w.length > 0); return words.length === 5; }
   },
   {
     name: 'json_strict',
     prompt: 'Output ONLY a JSON object (no markdown, no explanation): {"primes_under_20": [list all prime numbers less than 20], "count": the number of primes}',
+    checkType: 'json_primes_under_20',
     check: (r) => {
       try {
         let s = r.trim();
@@ -1974,17 +2188,59 @@ const CAPABILITY_TESTS = [
   {
     name: 'reasoning_en',
     prompt: 'A farmer has 17 sheep. All but 9 die. How many sheep are left? Reply with just the number.',
+    checkType: 'regex',
+    checkValue: '^9$',
     check: (r) => /^9$/.test(r.trim())
   },
   {
     name: 'instruction_cn',
     prompt: '请用恰好7个汉字回答：中国的首都是哪里？只输出7个汉字，不要标点。',
+    checkType: 'han_length',
+    checkValue: 7,
     check: (r) => {
       const clean = r.trim().replace(/[，。！？、；：""''（）\s\n]/g, '');
       return clean.length === 7;
     }
   },
 ];
+
+function makeCapabilityCheck(test) {
+  switch (test.checkType) {
+    case 'regex': {
+      if (!test.checkValue) return null;
+      const re = new RegExp(test.checkValue, 'i');
+      return r => re.test((r || '').trim());
+    }
+    case 'contains': {
+      const needle = String(test.checkValue || '').toLowerCase();
+      if (!needle) return null;
+      return r => String(r || '').toLowerCase().includes(needle);
+    }
+    case 'word_count': {
+      const count = Number(test.checkValue);
+      if (!Number.isFinite(count) || count < 1) return null;
+      return r => String(r || '').trim().replace(/[.!?,;:]/g, '').split(/\s+/).filter(w => w.length > 0).length === count;
+    }
+    case 'han_length': {
+      const count = Number(test.checkValue);
+      if (!Number.isFinite(count) || count < 1) return null;
+      return r => String(r || '').trim().replace(/[，。！？、；：""''（）\s\n]/g, '').length === count;
+    }
+    case 'json_primes_under_20':
+      return r => {
+        try {
+          let s = String(r || '').trim();
+          const m = s.match(/```(?:json)?\s*([\s\S]*?)```/) || s.match(/(\{[\s\S]*\})/);
+          if (m) s = m[1].trim();
+          const j = JSON.parse(s);
+          const expected = [2,3,5,7,11,13,17,19];
+          return JSON.stringify(j.primes_under_20) === JSON.stringify(expected) && j.count === 8;
+        } catch { return false; }
+      };
+    default:
+      return null;
+  }
+}
 
 async function probeL4(base, key, model) {
   const testResults = [];
@@ -2139,21 +2395,96 @@ async function verifySelected() {
 
 // ── End Authenticity Detection ──
 
+function avg(nums) {
+  const xs = nums.filter(n => Number.isFinite(n));
+  return xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0;
+}
+
+function percentile(nums, p) {
+  const xs = nums.filter(n => Number.isFinite(n)).sort((a, b) => a - b);
+  if (!xs.length) return 0;
+  const idx = Math.ceil((p / 100) * xs.length) - 1;
+  return xs[Math.max(0, Math.min(xs.length - 1, idx))];
+}
+
+function fmtMsNum(n) { return Number.isFinite(n) && n > 0 ? `${Math.round(n)}ms` : '—'; }
+function fmtTpsNum(n) { return Number.isFinite(n) && n > 0 ? `${Math.round(n)} tps` : '—'; }
+
+function makeCompat() {
+  return {
+    models: { status: 'ok', detail: '/models' },
+    stream: { status: 'idle', detail: '' },
+    usage: { status: 'idle', detail: '' },
+    tools: { status: 'idle', detail: '' },
+    json: { status: 'idle', detail: '' },
+    headers: { status: 'idle', detail: '' }
+  };
+}
+
+function computeBenchmarkSummary(runs) {
+  const ok = runs.filter(r => r.ok);
+  const fail = runs.length - ok.length;
+  const totals = ok.map(r => r.totalMs);
+  const ttfts = ok.map(r => r.ttftMs).filter(n => n > 0);
+  const tpsValues = ok.map(r => r.tps).filter(n => n > 0);
+  const promptTokens = ok.reduce((sum, r) => sum + (r.usage?.prompt_tokens || 0), 0);
+  const completionTokens = ok.reduce((sum, r) => sum + (r.usage?.completion_tokens || 0), 0);
+  const totalTokens = ok.reduce((sum, r) => sum + (r.usage?.total_tokens || 0), 0);
+  return {
+    runs: runs.length,
+    success: ok.length,
+    fail,
+    avgTtft: avg(ttfts),
+    p95Ttft: percentile(ttfts, 95),
+    avgTotal: avg(totals),
+    p95Total: percentile(totals, 95),
+    avgTps: avg(tpsValues),
+    p95Tps: percentile(tpsValues, 95),
+    promptTokens,
+    completionTokens,
+    totalTokens,
+    samples: runs
+  };
+}
+
+function renderBenchmarkSummary(summary) {
+  if (!summary) return '';
+  const rate = summary.runs ? Math.round((summary.success / summary.runs) * 100) : 0;
+  return `<div class="metric-stack">
+    <div class="metric-main">avg ${fmtMsNum(summary.avgTotal)} · p95 ${fmtMsNum(summary.p95Total)}</div>
+    <div class="metric-sub">TTFT ${fmtMsNum(summary.avgTtft)} · ${fmtTpsNum(summary.avgTps)}</div>
+    <div class="metric-sub">${summary.success}/${summary.runs} ok · ${rate}%</div>
+  </div>`;
+}
+
+function compatBadge(item) {
+  const status = item?.status || 'idle';
+  const label = status === 'ok' ? t('compatOk')
+    : status === 'warn' ? t('compatWarn')
+    : status === 'fail' ? t('compatFail')
+    : t('compatNa');
+  const cls = status === 'ok' ? 'pass' : status === 'warn' ? 'warn' : status === 'fail' ? 'fail' : 'idle';
+  return `<span class="chip chip--${cls}" title="${esc(item?.detail || '')}">${label}</span>`;
+}
+
 // Test selected models
 async function testSelected() {
   const sel=getChecked(); if(!sel.length) return;
   const btn=document.getElementById('btnTest'); btn.disabled=true; btn.textContent=t('testing');
   document.getElementById('resultsSection').style.display='block';
+  document.getElementById('compatSection').style.display='block';
 
   const concurrency = parseInt(document.getElementById('concSelect').value) || 3;
+  const benchRuns = Math.max(1, parseInt(document.getElementById('benchRuns').value) || 1);
 
   results={};
-  sel.forEach(s=>{ const k=`${s.id}::${s.channelId}`; results[k]={id:s.id,ch:s.channelId,chat:'idle',tool:'idle',ttft:'',total:'',resp:'',ce:'',toolName:'',toolArgs:'',te:'',tokens:'',auth:'idle',authSignals:[],authVerdict:''}; });
+  sel.forEach(s=>{ const k=`${s.id}::${s.channelId}`; results[k]={id:s.id,ch:s.channelId,chat:'idle',tool:'idle',ttft:'',total:'',resp:'',ce:'',toolName:'',toolArgs:'',te:'',tokens:'',auth:'idle',authSignals:[],authVerdict:'',benchmark:null,compat:makeCompat()}; });
   renderResults();
+  renderCompatibility();
 
   const pw=document.getElementById('progressWrap'), pb=document.getElementById('progressBar');
   pw.classList.add('on'); pb.style.width='0%';
-  let done=0; const total=sel.length*2;
+  let done=0; const total=sel.length*(benchRuns+2);
   function tick(){done++;pb.style.width=`${(done/total)*100}%`;}
 
   const TEST_TIMEOUT_MS = 100000; // 100秒超时
@@ -2172,11 +2503,8 @@ async function testSelected() {
     }
   }
 
-  async function testOne(s) {
-    const ch=channels[s.channelId], base=normUrl(ch.baseUrl), key=ch.apiKey, rk=`${s.id}::${s.channelId}`;
-
-    // Chat: streaming to capture TTFT + total
-    results[rk].chat='running'; renderResults();
+  async function runChatOnce(s, ch) {
+    const base=normUrl(ch.baseUrl), key=ch.apiKey;
     const tStart=performance.now();
     try {
       let r;
@@ -2229,31 +2557,19 @@ async function testSelected() {
       }
       const elapsed=Math.round(performance.now()-tStart);
       const contentLower = content.trim().toLowerCase();
-      const hasHello = contentLower.includes('hello') || contentLower.includes('hi') || contentLower.length > 0;
-      results[rk].chat = hasHello ? 'pass' : 'fail';
-      results[rk].ttft=ttft?`${ttft}ms`:'—';
-      results[rk].total=`${elapsed}ms`;
-      results[rk].resp=content.trim().slice(0,80)||'(empty)';
-      results[rk].tokens=usage?`${usage.prompt_tokens||0}+${usage.completion_tokens||0}=${usage.total_tokens||0}tk`:'';
-      if (!hasHello) results[rk].ce = 'Did not contain expected response';
-
-      // ── Authenticity L0 + L1 ──
-      results[rk].respModel = responseModel || '';
-      const l0Signals = checkL0(s.id, responseModel, systemFingerprint, respHeaders);
+      const hasHello = contentLower.includes('hello') || contentLower.includes('hi');
+      const generationMs = ttft > 0 ? elapsed - ttft : elapsed;
       const completionTokens = usage ? (usage.completion_tokens || 0) : 0;
-      const l1Signals = checkL1(s.id, ttft, elapsed, completionTokens);
-      const allSignals = [...l0Signals, ...l1Signals];
-      results[rk].authSignals = allSignals;
-      results[rk].authVerdict = computeAuthVerdict(allSignals);
-      results[rk].auth = results[rk].authVerdict;
+      const tps = generationMs > 0 && completionTokens > 0 ? (completionTokens / generationMs) * 1000 : 0;
+      return { ok: hasHello, ttftMs: ttft, totalMs: elapsed, content: content.trim(), usage, respHeaders, responseModel, systemFingerprint, tps, usedStreamOpts };
     }catch(e){
       const elapsed=Math.round(performance.now()-tStart);
-      results[rk].chat='fail';results[rk].ce=e.message;
-      results[rk].ttft='—';results[rk].total=`${elapsed}ms`;
-      results[rk].auth='na';results[rk].authSignals=[];results[rk].authVerdict='na';
+      return { ok: false, totalMs: elapsed, error: e.message, ttftMs: 0, tps: 0 };
     }
-    tick();renderResults();
+  }
 
+  async function testTool(s, ch, rk) {
+    const base=normUrl(ch.baseUrl), key=ch.apiKey;
     // Tool: non-streaming, force specific tool_choice
     results[rk].tool='running'; renderResults();
     const t1=performance.now();
@@ -2320,7 +2636,93 @@ async function testSelected() {
         results[rk].tool='fail';results[rk].te=e.message;results[rk].toolTotal=`${Math.round(performance.now()-t1)}ms`;
       }
     }
-    tick();renderResults();
+    results[rk].compat.tools = {
+      status: results[rk].tool === 'pass' ? 'ok' : results[rk].tool === 'warn' ? 'warn' : 'fail',
+      detail: results[rk].te || results[rk].toolName || ''
+    };
+    tick();renderResults();renderCompatibility();
+  }
+
+  async function testJsonMode(s, ch, rk) {
+    const base=normUrl(ch.baseUrl), key=ch.apiKey;
+    try {
+      const r=await fetchWithTimeout(`${base}/chat/completions`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json',...(key?{Authorization:`Bearer ${key}`}:{})},
+        body:JSON.stringify({
+          model:s.id,
+          messages:[{role:'user',content:'Return ONLY this JSON object: {"ok":true}'}],
+          response_format:{type:'json_object'},
+          max_tokens:50
+        })
+      }, 45000);
+      if(!r.ok){const e=await r.text().catch(()=>'');throw new Error(`HTTP ${r.status}: ${e.slice(0,120)}`)}
+      const d=await r.json();
+      const content=d.choices?.[0]?.message?.content || '';
+      try {
+        const parsed = JSON.parse(content.trim());
+        results[rk].compat.json = parsed && parsed.ok === true
+          ? { status:'ok', detail:'response_format json_object' }
+          : { status:'warn', detail:content.slice(0,120) };
+      } catch(_) {
+        results[rk].compat.json = { status:'warn', detail:content.slice(0,120) || 'invalid JSON' };
+      }
+    } catch(e) {
+      results[rk].compat.json = { status:'fail', detail:e.message };
+    }
+    tick();renderCompatibility();
+  }
+
+  async function testOne(s) {
+    const ch=channels[s.channelId], rk=`${s.id}::${s.channelId}`;
+
+    // Chat benchmark: streaming to capture TTFT + total for N runs
+    results[rk].chat='running'; renderResults(); renderCompatibility();
+    const chatRuns = [];
+    for (let i=0; i<benchRuns; i++) {
+      const run = await runChatOnce(s, ch);
+      chatRuns.push(run);
+      results[rk].benchmark = computeBenchmarkSummary(chatRuns);
+      tick(); renderResults(); renderCompatibility();
+    }
+
+    const summary = computeBenchmarkSummary(chatRuns);
+    const firstOk = chatRuns.find(r => r.ok) || chatRuns.find(r => r.content) || null;
+    const lastError = [...chatRuns].reverse().find(r => r.error)?.error || '';
+    results[rk].benchmark = summary;
+    results[rk].chat = summary.success === benchRuns ? 'pass' : summary.success > 0 ? 'warn' : 'fail';
+    results[rk].ttft=fmtMsNum(summary.avgTtft);
+    results[rk].total=fmtMsNum(summary.avgTotal);
+    results[rk].resp=firstOk?.content?.slice(0,80) || '(empty)';
+    results[rk].tokens=summary.totalTokens ? `${summary.promptTokens}+${summary.completionTokens}=${summary.totalTokens}tk` : '';
+    results[rk].ce = summary.success ? (summary.fail ? `${summary.fail}/${summary.runs} runs failed` : '') : (lastError || 'Did not contain expected response');
+
+    results[rk].compat.stream = summary.success > 0 ? { status:'ok', detail:`${summary.success}/${summary.runs} stream runs` } : { status:'fail', detail:lastError || 'stream failed' };
+    results[rk].compat.usage = summary.totalTokens ? { status:'ok', detail:results[rk].tokens } : { status:'warn', detail:'usage not returned or not exposed in stream' };
+    const headerSignals = firstOk ? checkL0(s.id, firstOk.responseModel, firstOk.systemFingerprint, firstOk.respHeaders || []) : [];
+    const headerItem = headerSignals.find(sig => sig.type === 'headers');
+    results[rk].compat.headers = headerItem && headerItem.detected.length > 0
+      ? { status:'ok', detail:headerItem.detected.join(', ') }
+      : { status:'warn', detail:'vendor/rate-limit headers not readable' };
+
+    // ── Authenticity L0 + L1 ──
+    if (firstOk) {
+      results[rk].respModel = firstOk.responseModel || '';
+      const l0Signals = checkL0(s.id, firstOk.responseModel, firstOk.systemFingerprint, firstOk.respHeaders || {});
+      const avgCompletionTokens = summary.success ? summary.completionTokens / summary.success : 0;
+      const l1Signals = checkL1(s.id, summary.avgTtft, summary.avgTotal, avgCompletionTokens);
+      const allSignals = [...l0Signals, ...l1Signals];
+      results[rk].authSignals = allSignals;
+      results[rk].authVerdict = computeAuthVerdict(allSignals);
+      results[rk].auth = results[rk].authVerdict;
+    } else {
+      results[rk].auth='na';results[rk].authSignals=[];results[rk].authVerdict='na';
+    }
+
+    renderResults(); renderCompatibility();
+
+    await testTool(s, ch, rk);
+    await testJsonMode(s, ch, rk);
 
     // Save to persistent history
     const now = new Date();
@@ -2349,6 +2751,7 @@ async function testSelected() {
 
   pw.classList.remove('on'); btn.disabled=false; btn.textContent=t('testSelected');
   renderModelList();
+  renderCompatibility();
   toast(LANG[curLang].tested(sel.length));
 }
 
@@ -2356,13 +2759,13 @@ async function testSelected() {
 function renderResults() {
   const entries=Object.values(results);
   document.getElementById('resultsBody').innerHTML=entries.length===0
-    ?'<tr><td colspan="5" style="color:var(--text4);text-align:center;padding:32px;font-family:var(--font)">—</td></tr>'
+    ?'<tr><td colspan="6" style="color:var(--text4);text-align:center;padding:32px;font-family:var(--font)">—</td></tr>'
     :entries.map(r=>{
       const ci=r.ch%D_COLOR.length,clr=D_HEX[ci];
       const chLabel = channels[r.ch]?.name || `CH${r.ch+1}`;
       const rk = `${r.id}::${r.ch}`;
-      const chatDetail=r.chat==='pass'
-        ?`<div style="font-size:11px;color:var(--text4);margin-top:2px;">TTFT ${r.ttft} · total ${r.total}${r.tokens?` · ${r.tokens}`:''}</div><div style="font-size:11px;color:var(--text3);margin-top:1px;font-family:var(--mono);max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(r.resp||'')}">${esc((r.resp||'').slice(0,60))}</div>`
+      const chatDetail=(r.chat==='pass'||r.chat==='warn')
+        ?`<div style="font-size:11px;color:var(--text4);margin-top:2px;">TTFT ${r.ttft} · total ${r.total}${r.tokens?` · ${r.tokens}`:''}</div><div style="font-size:11px;color:var(--text3);margin-top:1px;font-family:var(--mono);max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(r.resp||'')}">${esc((r.resp||'').slice(0,60))}</div>${r.chat==='warn'&&r.ce?`<div style="font-size:11px;color:var(--amber);margin-top:1px;">${esc(r.ce)}</div>`:''}`
         :r.chat==='fail'?`<div style="font-size:11px;color:var(--red);margin-top:2px;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(r.ce||'')}">${esc((r.ce||'').slice(0,60))}</div>`
         :r.chat==='running'?'<div style="font-size:11px;color:var(--text4);margin-top:2px;"><span class="spin"></span></div>':'';
       const toolDetail=r.tool==='pass'
@@ -2370,6 +2773,7 @@ function renderResults() {
         :r.tool==='warn'?`<div style="font-size:11px;color:var(--amber);margin-top:2px;">${esc(r.te||'')}</div>`
         :r.tool==='fail'?`<div style="font-size:11px;color:var(--red);margin-top:2px;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(r.te||'')}">${esc((r.te||'').slice(0,60))}</div>`
         :r.tool==='running'?'<div style="font-size:11px;color:var(--text4);margin-top:2px;"><span class="spin"></span></div>':'';
+      const benchDetail = renderBenchmarkSummary(r.benchmark);
       // Authenticity column
       let authCell = '';
       if (r.auth === 'idle') {
@@ -2403,9 +2807,36 @@ function renderResults() {
         <td><span class="cell-source"><span class="sdot" style="background:${clr}"></span>${esc(chLabel)}</span></td>
         <td>${chip(r.chat)}${chatDetail}</td>
         <td>${chip(r.tool)}${toolDetail}</td>
+        <td>${benchDetail || '<span style="color:var(--text4);">—</span>'}</td>
         <td>${authCell}</td>
       </tr>`;
     }).join('');
+}
+
+function renderCompatibility() {
+  const entries = Object.values(results);
+  const section = document.getElementById('compatSection');
+  if (!entries.length) {
+    section.style.display = 'none';
+    document.getElementById('compatBody').innerHTML = '';
+    return;
+  }
+  section.style.display = 'block';
+  document.getElementById('compatBody').innerHTML = entries.map(r => {
+    const ci=r.ch%D_COLOR.length,clr=D_HEX[ci];
+    const chLabel = channels[r.ch]?.name || `CH${r.ch+1}`;
+    const c = r.compat || makeCompat();
+    return `<tr>
+      <td class="cell-model">${esc(r.id)}</td>
+      <td><span class="cell-source"><span class="sdot" style="background:${clr}"></span>${esc(chLabel)}</span></td>
+      <td>${compatBadge(c.models)}</td>
+      <td>${compatBadge(c.stream)}</td>
+      <td>${compatBadge(c.usage)}</td>
+      <td>${compatBadge(c.tools)}</td>
+      <td>${compatBadge(c.json)}</td>
+      <td>${compatBadge(c.headers)}</td>
+    </tr>`;
+  }).join('');
 }
 
 function chip(s){
@@ -2428,10 +2859,12 @@ function clearAll(){
   models=[];results={};
   document.getElementById('modelSection').style.display='none';
   document.getElementById('resultsSection').style.display='none';
+  document.getElementById('compatSection').style.display='none';
   document.getElementById('fetchStatus').textContent='';
   document.getElementById('fetchStatus').className='status-line';
   document.getElementById('modelList').innerHTML='';
   document.getElementById('resultsBody').innerHTML='';
+  document.getElementById('compatBody').innerHTML='';
   document.getElementById('progressWrap').classList.remove('on');
   document.getElementById('btnTest').disabled=true;
   document.getElementById('btnVerify').disabled=true;
@@ -2463,6 +2896,8 @@ function exportResults(format) {
         toolArgs: r.toolArgs,
         toolTotal: r.toolTotal,
         toolError: r.te,
+        benchmark: r.benchmark,
+        compatibility: r.compat,
         authenticity: r.authVerdict || '',
         authSignals: r.authSignals || [],
         authScore: r.deepVerify ? r.deepVerify.score : null,
@@ -2472,11 +2907,21 @@ function exportResults(format) {
     blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     filename = 'model-test-results.json';
   } else {
-    const headers = ['model','channel','chat','ttft','total','tokens','response','chatError','tool','toolName','toolArgs','toolTotal','toolError','authenticity'];
+    const headers = ['model','channel','chat','ttft','total','avgTps','p95Total','successRuns','tokens','response','chatError','tool','toolName','toolArgs','toolTotal','toolError','jsonMode','usage','stream','authenticity'];
     const csvEscape = s => `"${(s||'').replace(/"/g,'""')}"`;
     const rows = entries.map(r => {
       const chLabel = channels[r.ch]?.name || `CH${r.ch+1}`;
-      return [r.id,chLabel,r.chat,r.ttft,r.total,r.tokens,r.resp,r.ce,r.tool,r.toolName,r.toolArgs,r.toolTotal,r.te,r.authVerdict||''].map(csvEscape).join(',');
+      return [
+        r.id,chLabel,r.chat,r.ttft,r.total,
+        r.benchmark ? Math.round(r.benchmark.avgTps || 0) : '',
+        r.benchmark ? Math.round(r.benchmark.p95Total || 0) : '',
+        r.benchmark ? `${r.benchmark.success}/${r.benchmark.runs}` : '',
+        r.tokens,r.resp,r.ce,r.tool,r.toolName,r.toolArgs,r.toolTotal,r.te,
+        r.compat?.json?.status || '',
+        r.compat?.usage?.status || '',
+        r.compat?.stream?.status || '',
+        r.authVerdict||''
+      ].map(csvEscape).join(',');
     });
     blob = new Blob([headers.join(',') + '\n' + rows.join('\n')], { type: 'text/csv' });
     filename = 'model-test-results.csv';
@@ -2698,11 +3143,9 @@ function applyUserFingerprints() {
     const existingNames = new Set(CAPABILITY_TESTS.map(t => t.name));
     for (const test of userFingerprints.capabilityTests) {
       if (!existingNames.has(test.name)) {
-        // Reconstruct check function from string
-        if (typeof test.check === 'string') {
-          try { test.check = new Function('r', test.check); } catch(e) { continue; }
-        }
-        CAPABILITY_TESTS.push(test);
+        const check = makeCapabilityCheck(test);
+        if (!check) continue;
+        CAPABILITY_TESTS.push({ name: test.name, prompt: test.prompt, checkType: test.checkType, checkValue: test.checkValue, check });
       }
     }
   }
@@ -2716,7 +3159,8 @@ function exportFingerprints() {
     capabilityTests: CAPABILITY_TESTS.map(t => ({
       name: t.name,
       prompt: t.prompt,
-      check: t.check.toString()
+      checkType: t.checkType,
+      checkValue: t.checkValue
     }))
   };
   // Serialize knowledge probes with regex as string
@@ -2774,15 +3218,17 @@ function importFingerprints(input) {
       if (data.capabilityTests) {
         if (!userFingerprints.capabilityTests) userFingerprints.capabilityTests = [];
         const existingNames = new Set(CAPABILITY_TESTS.map(t => t.name));
+        let skippedUnsafe = 0;
         for (const test of data.capabilityTests) {
           if (!existingNames.has(test.name)) {
-            let checkFn;
-            try { checkFn = new Function('r', test.check); } catch(e) { continue; }
-            CAPABILITY_TESTS.push({ name: test.name, prompt: test.prompt, check: checkFn });
-            userFingerprints.capabilityTests.push(test);
+            const checkFn = makeCapabilityCheck(test);
+            if (!checkFn) { skippedUnsafe++; continue; }
+            CAPABILITY_TESTS.push({ name: test.name, prompt: test.prompt, checkType: test.checkType, checkValue: test.checkValue, check: checkFn });
+            userFingerprints.capabilityTests.push({ name: test.name, prompt: test.prompt, checkType: test.checkType, checkValue: test.checkValue });
             count++;
           }
         }
+        if (skippedUnsafe > 0) setTimeout(() => toast(LANG[curLang].fpImportSkipped(skippedUnsafe)), 2200);
       }
 
       localStorage.setItem('mt_userFingerprints', JSON.stringify(userFingerprints));
