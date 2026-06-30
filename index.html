@@ -195,7 +195,7 @@
 
   .channel-fields {
     display: grid;
-    grid-template-columns: 1fr 1.4fr 1fr;
+    grid-template-columns: 0.9fr 1fr 1.5fr 1.1fr 0.9fr;
     gap: 12px;
   }
   .field label {
@@ -219,8 +219,22 @@
     outline: none;
     transition: border-color 0.15s, box-shadow 0.15s;
   }
+  .field select {
+    width: 100%;
+    min-height: 38px;
+    padding: 9px 12px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    color: var(--text2);
+    font-size: 13px;
+    font-family: var(--font);
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
   .field input::placeholder { color: var(--text4); }
-  .field input:focus {
+  .field input:focus,
+  .field select:focus {
     border-color: var(--accent2);
     box-shadow: 0 0 0 3px var(--ring);
   }
@@ -686,6 +700,30 @@
     color: var(--text4);
     font-family: var(--mono);
   }
+  .eval-panel {
+    padding: 14px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: var(--shadow2);
+  }
+  .eval-meta {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+    color: var(--text3);
+    font-size: 12px;
+  }
+  .eval-meta code {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text2);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 6px;
+  }
   .compat-table th,
   .compat-table td {
     text-align: center;
@@ -953,6 +991,7 @@
   [data-theme="light"] .btn--ghost { background: rgba(0, 0, 0, 0.03); }
   [data-theme="light"] .btn--ghost:hover { background: rgba(0, 0, 0, 0.06); }
   [data-theme="light"] .field input { background: rgba(0, 0, 0, 0.02); }
+  [data-theme="light"] .field select { background: rgba(0, 0, 0, 0.02); }
   [data-theme="light"] .field input:focus {
     box-shadow: 0 0 0 1px rgba(113, 112, 255, 0.2),
                 rgba(0, 0, 0, 0.05) 0px 4px 12px;
@@ -1071,6 +1110,8 @@
     <div class="action-row action-row--between">
       <div style="display:flex;gap:8px;align-items:center;">
         <button class="btn btn--primary" id="btnTest" onclick="testSelected()" disabled>Performance Test</button>
+        <button class="btn btn--ghost" id="btnCancel" onclick="cancelTests()" disabled>Cancel</button>
+        <button class="btn btn--ghost" id="btnRerunFailed" onclick="rerunFailed()" disabled>Rerun failed</button>
         <button class="btn btn--ghost" id="btnVerify" onclick="verifySelected()" disabled>Authenticity Check</button>
         <span class="select-hint" id="selectedCount"></span>
       </div>
@@ -1095,6 +1136,22 @@
     <div class="progress" id="progressWrap"><div class="progress-bar" id="progressBar"></div></div>
   </div>
 
+  <!-- Eval suite -->
+  <div class="section" id="evalSection">
+    <div class="section-header">
+      <div class="section-label" id="lblEvalSuite">Eval suite</div>
+      <div class="section-header-actions">
+        <button class="btn btn--ghost btn--tiny" onclick="exportEvalSuite()" id="btnEvalExport">Export suite</button>
+        <button class="btn btn--ghost btn--tiny" onclick="document.getElementById('evalImportFile').click()" id="btnEvalImport">Import suite</button>
+        <button class="btn btn--ghost btn--tiny" onclick="resetEvalSuite()" id="btnEvalReset">Reset suite</button>
+        <input type="file" id="evalImportFile" accept=".json" style="display:none" onchange="importEvalSuite(this)">
+      </div>
+    </div>
+    <div class="eval-panel">
+      <div class="eval-meta" id="evalSuiteMeta"></div>
+    </div>
+  </div>
+
   <!-- Results -->
   <div class="section" id="resultsSection" style="display:none;">
     <div class="section-header">
@@ -1107,7 +1164,7 @@
     </div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th id="thModel">Model</th><th id="thChannel">Channel</th><th id="thChat">Chat</th><th id="thTools">Tools</th><th id="thBench">Benchmark</th><th id="thAuth">Authenticity</th></tr></thead>
+        <thead><tr><th id="thModel">Model</th><th id="thChannel">Channel</th><th id="thChat">Chat</th><th id="thTools">Tools</th><th id="thBench">Benchmark</th><th id="thEval">Eval</th><th id="thAuth">Authenticity</th></tr></thead>
         <tbody id="resultsBody"></tbody>
       </table>
     </div>
@@ -1142,6 +1199,7 @@
   </div>
   <div class="fp-section">
     <div class="action-row">
+      <button class="btn btn--ghost btn--sm" onclick="clearAllKeys()" id="btnClearKeys">Clear API keys</button>
       <button class="btn btn--ghost btn--sm" onclick="exportFingerprints()" id="btnFpExport">Export fingerprints</button>
       <button class="btn btn--ghost btn--sm" onclick="document.getElementById('fpImportFile').click()" id="btnFpImport">Import fingerprints</button>
       <input type="file" id="fpImportFile" accept=".json" style="display:none" onchange="importFingerprints(this)">
@@ -1175,6 +1233,10 @@ const LANG = {
     name: 'Name',
     baseUrl: 'Base URL',
     apiKey: 'API Key',
+    provider: 'Provider',
+    keyMode: 'Key storage',
+    keyLocal: 'Local',
+    keySession: 'Session',
     remove: 'Remove',
     fetchModels: 'Fetch models',
     fetching: 'Fetching…',
@@ -1186,6 +1248,10 @@ const LANG = {
     clearHistory: 'Clear history',
     testSelected: 'Performance Test',
     testing: 'Testing…',
+    cancel: 'Cancel',
+    cancelled: 'Cancelled',
+    rerunFailed: 'Rerun failed',
+    noFailedResults: 'No failed results to rerun',
     concurrency: 'Concurrency',
     runs: 'Runs',
     selected: 'selected',
@@ -1197,6 +1263,16 @@ const LANG = {
     chat: 'Chat',
     tools: 'Tools',
     benchmark: '基准',
+    evalSuite: 'Eval suite',
+    eval: 'Eval',
+    evalExport: 'Export suite',
+    evalImport: 'Import suite',
+    evalReset: 'Reset suite',
+    evalImported: (n) => `Imported ${n} eval case${n>1?'s':''}`,
+    evalImportFailed: 'Import failed: invalid eval suite',
+    evalResetDone: 'Eval suite reset',
+    evalSuiteMeta: (name, n) => `${name} · ${n} case${n>1?'s':''}`,
+    evalNoCases: 'No custom eval cases',
     pass: 'Pass',
     fail: 'Fail',
     partial: 'Partial',
@@ -1206,6 +1282,8 @@ const LANG = {
     keepOne: 'Keep at least one channel',
     channelsExported: 'Channels exported',
     channelsSafeExported: 'Channels exported without API keys',
+    clearKeys: 'Clear API keys',
+    keysCleared: 'API keys cleared',
     imported: (n) => `Imported ${n} channel${n>1?'s':''}`,
     noValidChannels: 'No valid channels in file',
     importFailed: (msg) => `Import failed: ${msg}`,
@@ -1297,6 +1375,10 @@ const LANG = {
     name: '名称',
     baseUrl: '接口地址',
     apiKey: '密钥',
+    provider: '服务商',
+    keyMode: '密钥保存',
+    keyLocal: '本地',
+    keySession: '会话',
     remove: '移除',
     fetchModels: '获取模型',
     fetching: '获取中…',
@@ -1308,6 +1390,10 @@ const LANG = {
     clearHistory: '清除历史',
     testSelected: '性能测试',
     testing: '测试中…',
+    cancel: '取消',
+    cancelled: '已取消',
+    rerunFailed: '重跑失败项',
+    noFailedResults: '没有可重跑的失败项',
     concurrency: '并发数',
     runs: '轮次',
     selected: '已选',
@@ -1319,6 +1405,16 @@ const LANG = {
     chat: '聊天',
     tools: '工具',
     benchmark: 'Benchmark',
+    evalSuite: '评测套件',
+    eval: 'Eval',
+    evalExport: '导出套件',
+    evalImport: '导入套件',
+    evalReset: '重置套件',
+    evalImported: (n) => `已导入 ${n} 条评测用例`,
+    evalImportFailed: '导入失败：评测套件格式无效',
+    evalResetDone: '评测套件已重置',
+    evalSuiteMeta: (name, n) => `${name} · ${n} 条用例`,
+    evalNoCases: '没有自定义评测用例',
     pass: '通过',
     fail: '失败',
     partial: '部分',
@@ -1328,6 +1424,8 @@ const LANG = {
     keepOne: '至少保留一个渠道',
     channelsExported: '渠道已导出',
     channelsSafeExported: '渠道已导出（不含密钥）',
+    clearKeys: '清除密钥',
+    keysCleared: 'API 密钥已清除',
     imported: (n) => `已导入 ${n} 个渠道`,
     noValidChannels: '文件中没有有效渠道',
     importFailed: (msg) => `导入失败: ${msg}`,
@@ -1448,6 +1546,8 @@ function applyLang() {
   document.getElementById('lnkTextOnly').textContent = t('textOnly');
   document.getElementById('lnkClearHist').textContent = t('clearHistory');
   document.getElementById('btnTest').textContent = t('testSelected');
+  document.getElementById('btnCancel').textContent = t('cancel');
+  document.getElementById('btnRerunFailed').textContent = t('rerunFailed');
   document.getElementById('btnVerify').textContent = t('verify');
   document.getElementById('lblConc').textContent = t('concurrency');
   document.getElementById('lblRuns').textContent = t('runs');
@@ -1460,7 +1560,12 @@ function applyLang() {
   document.getElementById('thChat').textContent = t('chat');
   document.getElementById('thTools').textContent = t('tools');
   document.getElementById('thBench').textContent = t('benchmark');
+  document.getElementById('thEval').textContent = t('eval');
   document.getElementById('thAuth').textContent = t('authenticity');
+  document.getElementById('lblEvalSuite').textContent = t('evalSuite');
+  document.getElementById('btnEvalExport').textContent = t('evalExport');
+  document.getElementById('btnEvalImport').textContent = t('evalImport');
+  document.getElementById('btnEvalReset').textContent = t('evalReset');
   document.getElementById('lblCompat').textContent = t('compatibility');
   document.getElementById('thCompatModel').textContent = t('model');
   document.getElementById('thCompatChannel').textContent = t('channel');
@@ -1471,6 +1576,7 @@ function applyLang() {
   document.getElementById('thCompatJson').textContent = t('compatJson');
   document.getElementById('thCompatHeaders').textContent = t('compatHeaders');
   document.getElementById('compareTitle').textContent = t('compareTitle');
+  document.getElementById('btnClearKeys').textContent = t('clearKeys');
   document.getElementById('btnFpExport').textContent = t('fpExport');
   document.getElementById('btnFpImport').textContent = t('fpImport');
   document.getElementById('footnoteEl').innerHTML = `<strong>${t('footCors')}</strong> — ${t('footMsg')} ${t('footStorage')}`;
@@ -1478,6 +1584,7 @@ function applyLang() {
   // Update theme button text too (it uses translated strings)
   document.getElementById('themeToggle').textContent = curTheme === 'dark' ? `◐ ${t('themeLight')}` : `◑ ${t('themeDark')}`;
   // Re-render dynamic content
+  renderEvalSuiteMeta();
   renderChannels();
   if (models.length) renderModelList();
   if (Object.keys(results).length) renderResults();
@@ -1488,24 +1595,85 @@ const D_COLOR = ['dot--0','dot--1','dot--2','dot--3','dot--4'];
 const D_HEX   = ['#7170ff','#38bdf8','#a78bfa','#34d399','#fb923c'];
 const D_BG    = ['#7170ff','#38bdf8','#a78bfa','#34d399','#fb923c'];
 
+const PROVIDERS = {
+  openai: { label: 'OpenAI-compatible', suffix: '/v1' },
+  azure: { label: 'Azure OpenAI', suffix: '' },
+  openrouter: { label: 'OpenRouter', suffix: '/v1' },
+  ollama: { label: 'Ollama', suffix: '/v1' },
+  lmstudio: { label: 'LM Studio', suffix: '/v1' },
+  custom: { label: 'Custom path', suffix: '' }
+};
+
 let channels = [], models = [], results = {}, chCounter = 0, filterMask = [], testHistory = {};
 let historyLog = {};
 let userFingerprints = {};
+let activeRunController = null;
+let runCancelled = false;
+let evalSuite = null;
+
+const DEFAULT_EVAL_SUITE = {
+  version: 1,
+  name: 'Default sanity suite',
+  cases: [
+    {
+      name: 'exact_hello',
+      prompt: 'Reply with exactly this word and no punctuation: hello',
+      assert: { type: 'regex', value: '^hello$' },
+      maxTokens: 20,
+      weight: 1
+    },
+    {
+      name: 'json_shape',
+      prompt: 'Return only JSON: {"ok": true, "count": 3}',
+      assert: { type: 'json_path', path: 'ok', value: true },
+      maxTokens: 60,
+      weight: 1
+    }
+  ]
+};
 
 (function init() {
   const s = localStorage.getItem('mt_channels');
   if (s) { try { channels = JSON.parse(s); chCounter = channels.reduce((m,c)=>Math.max(m,c._id||0),0); } catch(e){} }
+  normalizeChannels();
   if (!channels.length) addChannel(true);
   syncFilterMask();
 
   const th = localStorage.getItem('mt_testHistory');
   if (th) { try { testHistory = JSON.parse(th); } catch(e){} }
+  loadEvalSuite();
 
   applyTheme();
   applyLang();
 })();
 
-function persist() { localStorage.setItem('mt_channels', JSON.stringify(channels)); }
+function normalizeChannels() {
+  channels = channels.map((ch, idx) => {
+    const out = {
+      _id: ch._id || idx + 1,
+      name: ch.name || '',
+      baseUrl: ch.baseUrl || '',
+      apiKey: ch.apiKey || '',
+      provider: PROVIDERS[ch.provider] ? ch.provider : 'openai',
+      keyMode: ch.keyMode === 'session' ? 'session' : 'local'
+    };
+    if (out.keyMode === 'session') out.apiKey = sessionStorage.getItem(keyStoreId(out)) || '';
+    return out;
+  });
+  chCounter = channels.reduce((m, c) => Math.max(m, c._id || 0), chCounter);
+}
+
+function keyStoreId(ch) { return `mt_key_${ch._id}`; }
+function getApiKey(ch) {
+  return ch.keyMode === 'session' ? (sessionStorage.getItem(keyStoreId(ch)) || ch.apiKey || '') : (ch.apiKey || '');
+}
+function persist() {
+  const safeChannels = channels.map(ch => ({
+    ...ch,
+    apiKey: ch.keyMode === 'session' ? '' : ch.apiKey
+  }));
+  localStorage.setItem('mt_channels', JSON.stringify(safeChannels));
+}
 function syncFilterMask() {
   while (filterMask.length < channels.length) filterMask.push(true);
   if (filterMask.length > channels.length) filterMask.length = channels.length;
@@ -1513,7 +1681,7 @@ function syncFilterMask() {
 
 function addChannel(silent) {
   chCounter++;
-  channels.push({ _id:chCounter, name:'', baseUrl:'', apiKey:'' });
+  channels.push({ _id:chCounter, name:'', baseUrl:'', apiKey:'', provider:'openai', keyMode:'local' });
   filterMask.push(true);
   persist(); renderChannels();
   if (!silent) toast(t('channelAdded'));
@@ -1531,27 +1699,60 @@ function renderChannels() {
   document.getElementById('channelList').innerHTML = channels.map((ch,idx)=>{
     const ci = D_COLOR[idx % D_COLOR.length];
     const displayName = ch.name || `Channel ${idx+1}`;
+    const providerOpts = Object.entries(PROVIDERS).map(([key, p]) =>
+      `<option value="${key}"${(ch.provider||'openai')===key?' selected':''}>${esc(p.label)}</option>`).join('');
+    const keyMode = ch.keyMode === 'session' ? 'session' : 'local';
+    const keyValue = getApiKey(ch);
     return `<div class="channel">
       <div class="channel-name">
         <span class="dot ${ci}"></span><h3>${esc(displayName)}</h3>
         ${channels.length>1?`<button class="btn btn--danger btn--sm" onclick="removeChannel(${idx})">${t('remove')}</button>`:''}
       </div>
       <div class="channel-fields">
+        <div class="field"><label>${t('provider')}</label><select onchange="updateCh(${idx},'provider',this.value)">${providerOpts}</select></div>
         <div class="field"><label>${t('name')}</label><input type="text" placeholder="My Provider" value="${esc(ch.name)}" onchange="updateCh(${idx},'name',this.value)" autocomplete="off" spellcheck="false"></div>
         <div class="field"><label>${t('baseUrl')}</label><input type="text" placeholder="https://api.openai.com/v1" value="${esc(ch.baseUrl)}" onchange="updateCh(${idx},'baseUrl',this.value)" autocomplete="off" spellcheck="false"></div>
-        <div class="field"><label>${t('apiKey')}</label><input type="password" placeholder="sk-…" value="${esc(ch.apiKey)}" onchange="updateCh(${idx},'apiKey',this.value)" autocomplete="off" spellcheck="false"></div>
+        <div class="field"><label>${t('apiKey')}</label><input type="password" placeholder="sk-…" value="${esc(keyValue)}" onchange="updateCh(${idx},'apiKey',this.value)" autocomplete="off" spellcheck="false"></div>
+        <div class="field"><label>${t('keyMode')}</label><select onchange="updateCh(${idx},'keyMode',this.value)"><option value="local"${keyMode==='local'?' selected':''}>${t('keyLocal')}</option><option value="session"${keyMode==='session'?' selected':''}>${t('keySession')}</option></select></div>
       </div>
     </div>`;
   }).join('');
 }
 
-function updateCh(idx, field, val) { channels[idx][field]=val.trim(); persist(); }
+function updateCh(idx, field, val) {
+  const ch = channels[idx];
+  if (!ch) return;
+  const next = String(val || '').trim();
+  if (field === 'apiKey') {
+    ch.apiKey = next;
+    if (ch.keyMode === 'session') {
+      if (next) sessionStorage.setItem(keyStoreId(ch), next);
+      else sessionStorage.removeItem(keyStoreId(ch));
+    }
+  } else if (field === 'keyMode') {
+    const key = getApiKey(ch);
+    ch.keyMode = next === 'session' ? 'session' : 'local';
+    if (ch.keyMode === 'session') {
+      if (key) sessionStorage.setItem(keyStoreId(ch), key);
+      ch.apiKey = '';
+    } else {
+      ch.apiKey = key;
+      sessionStorage.removeItem(keyStoreId(ch));
+    }
+    renderChannels();
+  } else if (field === 'provider') {
+    ch.provider = PROVIDERS[next] ? next : 'custom';
+  } else {
+    ch[field] = next;
+  }
+  persist();
+}
 
 // Import / Export
 function exportChannels(includeKeys = true) {
   const exp = channels.map(ch => includeKeys
-    ? { name:ch.name, baseUrl:ch.baseUrl, apiKey:ch.apiKey }
-    : { name:ch.name, baseUrl:ch.baseUrl });
+    ? { name:ch.name, baseUrl:ch.baseUrl, apiKey:getApiKey(ch), provider:ch.provider||'openai', keyMode:ch.keyMode||'local' }
+    : { name:ch.name, baseUrl:ch.baseUrl, provider:ch.provider||'openai', keyMode:ch.keyMode||'local' });
   const blob = new Blob([JSON.stringify(exp, null, 2)], { type:'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -1573,7 +1774,13 @@ function importChannels(input) {
       data.forEach(item => {
         if (item.baseUrl) {
           chCounter++;
-          channels.push({ _id:chCounter, name:item.name||'', baseUrl:item.baseUrl, apiKey:item.apiKey||'' });
+          const keyMode = item.keyMode === 'session' ? 'session' : 'local';
+          const ch = { _id:chCounter, name:item.name||'', baseUrl:item.baseUrl, apiKey:item.apiKey||'', provider:PROVIDERS[item.provider]?item.provider:'openai', keyMode };
+          if (keyMode === 'session' && ch.apiKey) {
+            sessionStorage.setItem(keyStoreId(ch), ch.apiKey);
+            ch.apiKey = '';
+          }
+          channels.push(ch);
           filterMask.push(true);
           added++;
         }
@@ -1614,15 +1821,152 @@ function filteredModels() {
   return models.filter(m => filterMask[m.channelId]);
 }
 
-// Normalize URL — auto-append /v1 if missing
-function normUrl(raw) {
-  let u = raw.trim();
+// Normalize URL. Provider presets decide whether /v1 is appended.
+function normUrl(channelOrUrl) {
+  const isChannel = typeof channelOrUrl === 'object' && channelOrUrl !== null;
+  const raw = isChannel ? channelOrUrl.baseUrl : channelOrUrl;
+  const providerKey = isChannel ? (channelOrUrl.provider || 'openai') : 'openai';
+  const provider = PROVIDERS[providerKey] || PROVIDERS.custom;
+  let u = String(raw || '').trim();
   if (!u) return '';
   if (!u.startsWith('http')) u = 'https://' + u;
   u = u.replace(/\/+$/, '');
-  // Auto-append /v1 if not already ending with it
-  if (!/\/v1\/?$/.test(u)) u += '/v1';
+  if (provider.suffix && !u.endsWith(provider.suffix)) u += provider.suffix;
   return u;
+}
+
+function clearAllKeys() {
+  channels.forEach(ch => {
+    ch.apiKey = '';
+    sessionStorage.removeItem(keyStoreId(ch));
+  });
+  persist();
+  renderChannels();
+  toast(t('keysCleared'));
+}
+
+function loadEvalSuite() {
+  const s = localStorage.getItem('mt_evalSuite');
+  if (s) {
+    try {
+      evalSuite = sanitizeEvalSuite(JSON.parse(s));
+    } catch(_) {
+      evalSuite = cloneDefaultEvalSuite();
+    }
+  } else {
+    evalSuite = cloneDefaultEvalSuite();
+  }
+}
+
+function cloneDefaultEvalSuite() {
+  return JSON.parse(JSON.stringify(DEFAULT_EVAL_SUITE));
+}
+
+function sanitizeEvalSuite(data) {
+  if (!data || !Array.isArray(data.cases)) throw new Error('invalid suite');
+  const cases = data.cases.slice(0, 50).map((c, idx) => {
+    const name = String(c.name || `case_${idx + 1}`).slice(0, 60);
+    const prompt = String(c.prompt || '').slice(0, 4000);
+    const assert = c.assert || {};
+    const type = ['contains','not_contains','regex','exact','json_path'].includes(assert.type) ? assert.type : 'contains';
+    const value = assert.value;
+    const path = assert.path ? String(assert.path).slice(0, 120) : '';
+    const maxTokens = Math.max(1, Math.min(2000, Number(c.maxTokens || 300)));
+    const weight = Math.max(1, Math.min(10, Number(c.weight || 1)));
+    if (!prompt) return null;
+    if (type === 'regex' && String(value || '').length > 240) return null;
+    return { name, prompt, assert: { type, value, path }, maxTokens, weight };
+  }).filter(Boolean);
+  return {
+    version: 1,
+    name: String(data.name || 'Custom eval suite').slice(0, 80),
+    cases
+  };
+}
+
+function saveEvalSuite() {
+  localStorage.setItem('mt_evalSuite', JSON.stringify(evalSuite));
+  renderEvalSuiteMeta();
+}
+
+function renderEvalSuiteMeta() {
+  const el = document.getElementById('evalSuiteMeta');
+  if (!el || !evalSuite) return;
+  const cases = evalSuite.cases || [];
+  el.innerHTML = cases.length
+    ? `<span>${esc(LANG[curLang].evalSuiteMeta(evalSuite.name || 'Eval suite', cases.length))}</span>${cases.slice(0, 6).map(c => `<code>${esc(c.name)}</code>`).join('')}${cases.length>6?`<span>+${cases.length-6}</span>`:''}`
+    : `<span>${t('evalNoCases')}</span>`;
+}
+
+function exportEvalSuite() {
+  const blob = new Blob([JSON.stringify(evalSuite || DEFAULT_EVAL_SUITE, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'model-tester-eval-suite.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function importEvalSuite(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function() {
+    try {
+      const suite = sanitizeEvalSuite(JSON.parse(reader.result));
+      evalSuite = suite;
+      saveEvalSuite();
+      toast(LANG[curLang].evalImported(suite.cases.length));
+    } catch(_) {
+      toast(t('evalImportFailed'));
+    }
+  };
+  reader.readAsText(file);
+  input.value = '';
+}
+
+function resetEvalSuite() {
+  evalSuite = cloneDefaultEvalSuite();
+  saveEvalSuite();
+  toast(t('evalResetDone'));
+}
+
+function readJsonPath(obj, path) {
+  if (!path) return undefined;
+  return path.split('.').reduce((cur, part) => cur == null ? undefined : cur[part], obj);
+}
+
+function checkEvalAssertion(content, assertion) {
+  const text = String(content || '').trim();
+  const value = assertion?.value;
+  switch (assertion?.type) {
+    case 'exact':
+      return text === String(value ?? '');
+    case 'not_contains':
+      return !text.toLowerCase().includes(String(value ?? '').toLowerCase());
+    case 'regex':
+      try { return new RegExp(String(value ?? ''), 'i').test(text); } catch(_) { return false; }
+    case 'json_path': {
+      try {
+        const m = text.match(/```(?:json)?\s*([\s\S]*?)```/) || text.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
+        const raw = m ? m[1] : text;
+        const parsed = JSON.parse(raw);
+        return JSON.stringify(readJsonPath(parsed, assertion.path)) === JSON.stringify(value);
+      } catch(_) { return false; }
+    }
+    case 'contains':
+    default:
+      return text.toLowerCase().includes(String(value ?? '').toLowerCase());
+  }
+}
+
+function renderEvalSummary(summary) {
+  if (!summary) return '';
+  const detail = summary.cases?.map(c => `${c.name}:${c.pass ? 'ok' : 'fail'}`).join(' · ') || '';
+  return `<div class="metric-stack">
+    <div class="metric-main">${summary.pass}/${summary.total} · ${summary.score}%</div>
+    <div class="metric-sub" title="${esc(detail)}">${esc(detail.slice(0, 80))}</div>
+  </div>`;
 }
 
 // Fetch models
@@ -1637,12 +1981,13 @@ async function fetchAllModels() {
 
   let total=0, errors=[];
   for (let ci=0; ci<channels.length; ci++) {
-    const ch=channels[ci], base=normUrl(ch.baseUrl);
+    const ch=channels[ci], base=normUrl(ch);
     if (!base) continue;
     const label = ch.name || `Channel ${ci+1}`;
     st.textContent=`${t('fetching').replace('…','')} ${label}…`;
     try {
-      const r = await fetch(`${base}/models`, { headers: ch.apiKey?{Authorization:`Bearer ${ch.apiKey}`}:{} });
+      const key = getApiKey(ch);
+      const r = await fetch(`${base}/models`, { headers: key?{Authorization:`Bearer ${key}`}:{} });
       if (!r.ok) { const txt = await r.text().catch(()=>''); throw new Error(`HTTP ${r.status}: ${txt.slice(0,150)}`); }
       const d = await r.json();
       const list = (d.data||d.models||d||[]).map(m=>typeof m==='string'?{id:m}:m).filter(m=>m.id);
@@ -1710,8 +2055,11 @@ function getChecked() {
 
 function onCheck() {
   const c=getChecked();
-  document.getElementById('btnTest').disabled=c.length===0;
-  document.getElementById('btnVerify').disabled=c.length===0;
+  const running = !!activeRunController;
+  document.getElementById('btnTest').disabled=running || c.length===0;
+  document.getElementById('btnVerify').disabled=running || c.length===0;
+  document.getElementById('btnCancel').disabled=!running;
+  document.getElementById('btnRerunFailed').disabled=running || !hasFailedResults();
   document.getElementById('selectedCount').textContent=c.length?`${c.length} ${t('selected')}`:'';
 }
 
@@ -1721,12 +2069,35 @@ function selectTextOnly(){ document.querySelectorAll('#modelList input').forEach
   const id=cb.value.toLowerCase(); cb.checked=!(id.includes('vision')||id.includes('vl')||id.includes('multimodal')||id.includes('embed')||id.includes('tts')||id.includes('whisper')||id.includes('dall-e')||id.includes('image')||id.includes('audio')||id.includes('rerank'));
 }); onCheck(); }
 
+function hasFailedResults() {
+  return Object.values(results).some(r => r.chat === 'fail' || r.tool === 'fail' || r.eval === 'fail' || r.eval === 'warn');
+}
+
+function failedSelection() {
+  return Object.values(results)
+    .filter(r => r.chat === 'fail' || r.tool === 'fail' || r.eval === 'fail' || r.eval === 'warn')
+    .map(r => ({ id: r.id, channelId: r.ch }));
+}
+
+function cancelTests() {
+  runCancelled = true;
+  if (activeRunController) activeRunController.abort();
+  toast(t('cancelled'));
+  onCheck();
+}
+
+function rerunFailed() {
+  const sel = failedSelection();
+  if (!sel.length) { toast(t('noFailedResults')); return; }
+  testSelected({ selection: sel, preserve: true });
+}
+
 // Concurrent pool helper
-async function runPool(tasks, concurrency) {
+async function runPool(tasks, concurrency, shouldStop = () => false) {
   const results = [];
   let idx = 0;
   async function worker() {
-    while (idx < tasks.length) {
+    while (idx < tasks.length && !shouldStop()) {
       const i = idx++;
       results[i] = await tasks[i]();
     }
@@ -2333,7 +2704,7 @@ async function verifySelected() {
   for (const s of sel) {
     const k = `${s.id}::${s.channelId}`;
     if (!results[k]) {
-      results[k] = { id: s.id, ch: s.channelId, chat: 'idle', tool: 'idle', ttft: '', total: '', resp: '', ce: '', toolName: '', toolArgs: '', te: '', tokens: '', auth: 'idle', authSignals: [], authVerdict: '' };
+      results[k] = { id: s.id, ch: s.channelId, chat: 'idle', tool: 'idle', ttft: '', total: '', resp: '', ce: '', toolName: '', toolArgs: '', te: '', tokens: '', eval:'idle', evalSummary:null, evalError:'', auth: 'idle', authSignals: [], authVerdict: '' };
     }
     results[k].deepVerify = null;
     results[k].auth = 'running';
@@ -2341,7 +2712,7 @@ async function verifySelected() {
   renderResults();
 
   async function verifyOne(s) {
-    const ch = channels[s.channelId], base = normUrl(ch.baseUrl), key = ch.apiKey;
+    const ch = channels[s.channelId], base = normUrl(ch), key = getApiKey(ch);
     const rk = `${s.id}::${s.channelId}`;
 
     // Progress update helper
@@ -2468,43 +2839,53 @@ function compatBadge(item) {
 }
 
 // Test selected models
-async function testSelected() {
-  const sel=getChecked(); if(!sel.length) return;
+async function testSelected(options = {}) {
+  const sel=options.selection || getChecked(); if(!sel.length) return;
+  activeRunController = new AbortController();
+  runCancelled = false;
   const btn=document.getElementById('btnTest'); btn.disabled=true; btn.textContent=t('testing');
+  document.getElementById('btnCancel').disabled=false;
+  document.getElementById('btnRerunFailed').disabled=true;
   document.getElementById('resultsSection').style.display='block';
   document.getElementById('compatSection').style.display='block';
 
   const concurrency = parseInt(document.getElementById('concSelect').value) || 3;
   const benchRuns = Math.max(1, parseInt(document.getElementById('benchRuns').value) || 1);
 
-  results={};
-  sel.forEach(s=>{ const k=`${s.id}::${s.channelId}`; results[k]={id:s.id,ch:s.channelId,chat:'idle',tool:'idle',ttft:'',total:'',resp:'',ce:'',toolName:'',toolArgs:'',te:'',tokens:'',auth:'idle',authSignals:[],authVerdict:'',benchmark:null,compat:makeCompat()}; });
+  if (!options.preserve) results={};
+  sel.forEach(s=>{ const k=`${s.id}::${s.channelId}`; results[k]={id:s.id,ch:s.channelId,chat:'idle',tool:'idle',ttft:'',total:'',resp:'',ce:'',toolName:'',toolArgs:'',te:'',tokens:'',eval:'idle',evalSummary:null,evalError:'',auth:'idle',authSignals:[],authVerdict:'',benchmark:null,compat:makeCompat()}; });
   renderResults();
   renderCompatibility();
 
   const pw=document.getElementById('progressWrap'), pb=document.getElementById('progressBar');
   pw.classList.add('on'); pb.style.width='0%';
-  let done=0; const total=sel.length*(benchRuns+2);
+  const evalCaseCount = evalSuite?.cases?.length || 0;
+  let done=0; const total=sel.length*(benchRuns+2+(evalCaseCount?1:0));
   function tick(){done++;pb.style.width=`${(done/total)*100}%`;}
 
   const TEST_TIMEOUT_MS = 100000; // 100秒超时
 
   async function fetchWithTimeout(url, opts, timeoutMs = TEST_TIMEOUT_MS) {
     const controller = new AbortController();
+    const outer = activeRunController?.signal;
+    const onAbort = () => controller.abort();
+    if (outer?.aborted) throw new Error(t('cancelled'));
+    if (outer) outer.addEventListener('abort', onAbort, { once: true });
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
       const r = await fetch(url, { ...opts, signal: controller.signal });
       return r;
     } catch(e) {
-      if (e.name === 'AbortError') throw new Error('Timeout: 请求超过100秒未响应');
+      if (e.name === 'AbortError') throw new Error(runCancelled ? t('cancelled') : 'Timeout: 请求超过100秒未响应');
       throw e;
     } finally {
       clearTimeout(timer);
+      if (outer) outer.removeEventListener('abort', onAbort);
     }
   }
 
   async function runChatOnce(s, ch) {
-    const base=normUrl(ch.baseUrl), key=ch.apiKey;
+    const base=normUrl(ch), key=getApiKey(ch);
     const tStart=performance.now();
     try {
       let r;
@@ -2537,6 +2918,7 @@ async function testSelected() {
       let responseModel='', systemFingerprint='';
       const streamDeadline = performance.now() + TEST_TIMEOUT_MS;
       while(!streamDone){
+        if(runCancelled) throw new Error(t('cancelled'));
         if(performance.now() > streamDeadline){ reader.cancel(); throw new Error('Timeout: 流式响应超过100秒未完成'); }
         const{value,done:d}=await reader.read(); streamDone=d;
         if(value){ buf+=decoder.decode(value,{stream:!d});
@@ -2569,7 +2951,7 @@ async function testSelected() {
   }
 
   async function testTool(s, ch, rk) {
-    const base=normUrl(ch.baseUrl), key=ch.apiKey;
+    const base=normUrl(ch), key=getApiKey(ch);
     // Tool: non-streaming, force specific tool_choice
     results[rk].tool='running'; renderResults();
     const t1=performance.now();
@@ -2612,6 +2994,7 @@ async function testSelected() {
       }
       if(!results[rk].toolTotal) results[rk].toolTotal=`${ms}ms`;
     }catch(e){
+      if (runCancelled) { results[rk].tool='idle'; return; }
       try {
         const r2=await fetchWithTimeout(`${base}/chat/completions`,{
           method:'POST',
@@ -2644,7 +3027,7 @@ async function testSelected() {
   }
 
   async function testJsonMode(s, ch, rk) {
-    const base=normUrl(ch.baseUrl), key=ch.apiKey;
+    const base=normUrl(ch), key=getApiKey(ch);
     try {
       const r=await fetchWithTimeout(`${base}/chat/completions`,{
         method:'POST',
@@ -2668,18 +3051,74 @@ async function testSelected() {
         results[rk].compat.json = { status:'warn', detail:content.slice(0,120) || 'invalid JSON' };
       }
     } catch(e) {
+      if (runCancelled) return;
       results[rk].compat.json = { status:'fail', detail:e.message };
     }
     tick();renderCompatibility();
   }
 
+  async function runCustomEval(s, ch, rk) {
+    const cases = evalSuite?.cases || [];
+    if (!cases.length) return;
+    const base=normUrl(ch), key=getApiKey(ch);
+    results[rk].eval='running'; renderResults();
+    const caseResults = [];
+    let weightedPass = 0, weightTotal = 0;
+
+    for (const c of cases) {
+      if (runCancelled) return;
+      const weight = Number(c.weight || 1);
+      weightTotal += weight;
+      const started = performance.now();
+      try {
+        const r=await fetchWithTimeout(`${base}/chat/completions`,{
+          method:'POST',
+          headers:{'Content-Type':'application/json',...(key?{Authorization:`Bearer ${key}`}:{})},
+          body:JSON.stringify({
+            model:s.id,
+            messages:[{role:'user',content:c.prompt}],
+            temperature:0,
+            max_tokens:c.maxTokens || 300
+          })
+        }, 60000);
+        if(!r.ok){const e=await r.text().catch(()=>'');throw new Error(`HTTP ${r.status}: ${e.slice(0,120)}`)}
+        const d=await r.json();
+        const content=d.choices?.[0]?.message?.content || '';
+        const pass = checkEvalAssertion(content, c.assert);
+        if (pass) weightedPass += weight;
+        caseResults.push({ name:c.name, pass, ms:Math.round(performance.now()-started), response:content.slice(0,120) });
+      } catch(e) {
+        if (runCancelled) return;
+        caseResults.push({ name:c.name, pass:false, ms:Math.round(performance.now()-started), error:e.message });
+      }
+      results[rk].evalSummary = {
+        pass: caseResults.filter(x => x.pass).length,
+        total: cases.length,
+        score: weightTotal ? Math.round((weightedPass / weightTotal) * 100) : 0,
+        cases: caseResults,
+        status: 'running'
+      };
+      renderResults();
+    }
+
+    const passCount = caseResults.filter(x => x.pass).length;
+    const score = weightTotal ? Math.round((weightedPass / weightTotal) * 100) : 0;
+    const status = passCount === cases.length ? 'pass' : passCount > 0 ? 'warn' : 'fail';
+    results[rk].eval = status;
+    results[rk].evalSummary = { pass: passCount, total: cases.length, score, cases: caseResults, status };
+    results[rk].evalError = caseResults.filter(x => !x.pass).map(x => x.error || x.name).join('; ');
+    tick(); renderResults();
+  }
+
   async function testOne(s) {
     const ch=channels[s.channelId], rk=`${s.id}::${s.channelId}`;
+    if (runCancelled) return;
 
     // Chat benchmark: streaming to capture TTFT + total for N runs
     results[rk].chat='running'; renderResults(); renderCompatibility();
     const chatRuns = [];
     for (let i=0; i<benchRuns; i++) {
+      if (runCancelled) return;
       const run = await runChatOnce(s, ch);
       chatRuns.push(run);
       results[rk].benchmark = computeBenchmarkSummary(chatRuns);
@@ -2721,8 +3160,12 @@ async function testSelected() {
 
     renderResults(); renderCompatibility();
 
+    if (runCancelled) return;
     await testTool(s, ch, rk);
+    if (runCancelled) return;
     await testJsonMode(s, ch, rk);
+    if (runCancelled) return;
+    await runCustomEval(s, ch, rk);
 
     // Save to persistent history
     const now = new Date();
@@ -2747,19 +3190,24 @@ async function testSelected() {
   }
 
   const tasks = sel.map(s => () => testOne(s));
-  await runPool(tasks, concurrency);
+  await runPool(tasks, concurrency, () => runCancelled);
 
+  const wasCancelled = runCancelled;
+  activeRunController = null;
+  runCancelled = false;
   pw.classList.remove('on'); btn.disabled=false; btn.textContent=t('testSelected');
+  document.getElementById('btnCancel').disabled=true;
   renderModelList();
   renderCompatibility();
-  toast(LANG[curLang].tested(sel.length));
+  onCheck();
+  toast(wasCancelled ? t('cancelled') : LANG[curLang].tested(sel.length));
 }
 
 // Render results table
 function renderResults() {
   const entries=Object.values(results);
   document.getElementById('resultsBody').innerHTML=entries.length===0
-    ?'<tr><td colspan="6" style="color:var(--text4);text-align:center;padding:32px;font-family:var(--font)">—</td></tr>'
+    ?'<tr><td colspan="7" style="color:var(--text4);text-align:center;padding:32px;font-family:var(--font)">—</td></tr>'
     :entries.map(r=>{
       const ci=r.ch%D_COLOR.length,clr=D_HEX[ci];
       const chLabel = channels[r.ch]?.name || `CH${r.ch+1}`;
@@ -2774,6 +3222,7 @@ function renderResults() {
         :r.tool==='fail'?`<div style="font-size:11px;color:var(--red);margin-top:2px;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(r.te||'')}">${esc((r.te||'').slice(0,60))}</div>`
         :r.tool==='running'?'<div style="font-size:11px;color:var(--text4);margin-top:2px;"><span class="spin"></span></div>':'';
       const benchDetail = renderBenchmarkSummary(r.benchmark);
+      const evalDetail = renderEvalSummary(r.evalSummary);
       // Authenticity column
       let authCell = '';
       if (r.auth === 'idle') {
@@ -2808,6 +3257,7 @@ function renderResults() {
         <td>${chip(r.chat)}${chatDetail}</td>
         <td>${chip(r.tool)}${toolDetail}</td>
         <td>${benchDetail || '<span style="color:var(--text4);">—</span>'}</td>
+        <td>${chip(r.eval || 'idle')}${evalDetail || (r.evalError ? `<div style="font-size:11px;color:var(--red);margin-top:2px;">${esc(r.evalError.slice(0,60))}</div>` : '')}</td>
         <td>${authCell}</td>
       </tr>`;
     }).join('');
@@ -2871,6 +3321,8 @@ function clearAll(){
   document.getElementById('selectedCount').textContent='';
   document.getElementById('btnFetch').disabled=false;
   document.getElementById('btnFetch').textContent=t('fetchModels');
+  document.getElementById('btnCancel').disabled=true;
+  document.getElementById('btnRerunFailed').disabled=true;
 }
 
 // Export Results
@@ -2897,6 +3349,8 @@ function exportResults(format) {
         toolTotal: r.toolTotal,
         toolError: r.te,
         benchmark: r.benchmark,
+        eval: r.eval || '',
+        evalSummary: r.evalSummary || null,
         compatibility: r.compat,
         authenticity: r.authVerdict || '',
         authSignals: r.authSignals || [],
@@ -2907,7 +3361,7 @@ function exportResults(format) {
     blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     filename = 'model-test-results.json';
   } else {
-    const headers = ['model','channel','chat','ttft','total','avgTps','p95Total','successRuns','tokens','response','chatError','tool','toolName','toolArgs','toolTotal','toolError','jsonMode','usage','stream','authenticity'];
+    const headers = ['model','channel','chat','ttft','total','avgTps','p95Total','successRuns','tokens','response','chatError','tool','toolName','toolArgs','toolTotal','toolError','eval','evalScore','jsonMode','usage','stream','authenticity'];
     const csvEscape = s => `"${(s||'').replace(/"/g,'""')}"`;
     const rows = entries.map(r => {
       const chLabel = channels[r.ch]?.name || `CH${r.ch+1}`;
@@ -2917,6 +3371,7 @@ function exportResults(format) {
         r.benchmark ? Math.round(r.benchmark.p95Total || 0) : '',
         r.benchmark ? `${r.benchmark.success}/${r.benchmark.runs}` : '',
         r.tokens,r.resp,r.ce,r.tool,r.toolName,r.toolArgs,r.toolTotal,r.te,
+        r.eval || '', r.evalSummary ? r.evalSummary.score : '',
         r.compat?.json?.status || '',
         r.compat?.usage?.status || '',
         r.compat?.stream?.status || '',
