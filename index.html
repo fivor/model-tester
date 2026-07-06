@@ -1609,7 +1609,10 @@ let historyLog = {};
 let userFingerprints = {};
 let activeRunController = null;
 let runCancelled = false;
+let verifyInProgress = false;
+let verifyRunToken = 0;
 let evalSuite = null;
+let compareActiveModel = '';
 
 const DEFAULT_EVAL_SUITE = {
   version: 1,
@@ -1667,6 +1670,18 @@ function keyStoreId(ch) { return `mt_key_${ch._id}`; }
 function getApiKey(ch) {
   return ch.keyMode === 'session' ? (sessionStorage.getItem(keyStoreId(ch)) || ch.apiKey || '') : (ch.apiKey || '');
 }
+async function fetchWithTimeoutResponse(url, opts = {}, timeoutMs = 30000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...opts, signal: controller.signal });
+  } catch(e) {
+    if (e.name === 'AbortError') throw new Error(`Timeout: ${Math.round(timeoutMs / 1000)}s`);
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
+}
 function persist() {
   const safeChannels = channels.map(ch => ({
     ...ch,
@@ -1679,6 +1694,39 @@ function syncFilterMask() {
   if (filterMask.length > channels.length) filterMask.length = channels.length;
 }
 
+function resetRuntimeState(clearFetchStatus = true) {
+  if (activeRunController) {
+    runCancelled = true;
+    activeRunController.abort();
+    activeRunController = null;
+  }
+  verifyRunToken++;
+  verifyInProgress = false;
+  models = [];
+  results = {};
+  compareActiveModel = '';
+  document.getElementById('modelSection').style.display = 'none';
+  document.getElementById('resultsSection').style.display = 'none';
+  document.getElementById('compatSection').style.display = 'none';
+  if (clearFetchStatus) {
+    document.getElementById('fetchStatus').textContent = '';
+    document.getElementById('fetchStatus').className = 'status-line';
+  }
+  document.getElementById('filterRow').innerHTML = '';
+  document.getElementById('modelList').innerHTML = '';
+  document.getElementById('resultsBody').innerHTML = '';
+  document.getElementById('compatBody').innerHTML = '';
+  document.getElementById('progressWrap').classList.remove('on');
+  document.getElementById('btnFetch').disabled = false;
+  document.getElementById('btnFetch').textContent = t('fetchModels');
+  document.getElementById('btnTest').textContent = t('testSelected');
+  document.getElementById('btnVerify').textContent = t('verify');
+  document.getElementById('btnCancel').disabled = true;
+  document.getElementById('btnRerunFailed').disabled = true;
+  document.getElementById('selectedCount').textContent = '';
+  onCheck();
+}
+
 function addChannel(silent) {
   chCounter++;
   channels.push({ _id:chCounter, name:'', baseUrl:'', apiKey:'', provider:'openai', keyMode:'local' });
@@ -1689,9 +1737,10 @@ function addChannel(silent) {
 
 function removeChannel(idx) {
   if (channels.length <= 1) { toast(t('keepOne')); return; }
+  sessionStorage.removeItem(keyStoreId(channels[idx]));
   channels.splice(idx,1);
   filterMask.splice(idx,1);
-  persist(); renderChannels();
+  persist(); renderChannels(); resetRuntimeState();
   toast(t('channelRemoved'));
 }
 
@@ -1979,22 +2028,31 @@ async function fetchAllModels() {
   const btn = document.getElementById('btnFetch');
   btn.disabled=true; btn.textContent=t('fetching');
 
-  let total=0, errors=[];
-  for (let ci=0; ci<channels.length; ci++) {
-    const ch=channels[ci], base=normUrl(ch);
-    if (!base) continue;
+  let completed=0, errors=[];
+  const tasks = channels.map((ch, ci) => async () => {
+    const base=normUrl(ch);
     const label = ch.name || `Channel ${ci+1}`;
-    st.textContent=`${t('fetching').replace('…','')} ${label}…`;
+    if (!base) {
+      return [];
+    }
     try {
       const key = getApiKey(ch);
-      const r = await fetch(`${base}/models`, { headers: key?{Authorization:`Bearer ${key}`}:{} });
+      const r = await fetchWithTimeoutResponse(`${base}/models`, { headers: key?{Authorization:`Bearer ${key}`}:{} });
       if (!r.ok) { const txt = await r.text().catch(()=>''); throw new Error(`HTTP ${r.status}: ${txt.slice(0,150)}`); }
       const d = await r.json();
       const list = (d.data||d.models||d||[]).map(m=>typeof m==='string'?{id:m}:m).filter(m=>m.id);
-      list.forEach(m=>{ models.push({id:m.id, owned_by:m.owned_by||'', channelId:ci}); });
-      total+=list.length;
-    } catch(e) { errors.push(`[${label}] ${e.message}`); }
-  }
+      return list.map(m=>({id:m.id, owned_by:m.owned_by||'', channelId:ci}));
+    } catch(e) {
+      errors.push(`[${label}] ${e.message}`);
+      return [];
+    } finally {
+      completed++;
+      st.textContent=`${t('fetching').replace('…','')} ${completed}/${channels.length}…`;
+    }
+  });
+
+  const fetched = await runPool(tasks, Math.min(4, channels.length || 1));
+  models = fetched.flat().filter(Boolean);
 
   const seen = new Set();
   models = models.filter(m=>{ const k=`${m.id}::${m.channelId}`; if(seen.has(k))return false; seen.add(k); return true; })
@@ -2025,17 +2083,20 @@ function renderModelList() {
     const hist = testHistory[hk];
     const chLabel = channels.length>1
       ? `<span class="src-tag" style="color:${clr}"><span style="display:inline-block;width:5px;height:5px;border-radius:50%;background:${clr};flex-shrink:0"></span> ${esc(channels[m.channelId].name||`CH${m.channelId+1}`)}</span>`:'';
+    const histChatTitle = hist ? esc(`Chat: ${hist.chat==='pass'?'Pass':'Fail'} · TTFT ${hist.ttft||'—'} · ${hist.total||'—'} · ${hist.resp||''}`) : '';
+    const histToolTitle = hist ? esc(`Tools: ${hist.tool==='pass'?'Pass':hist.tool==='warn'?'Partial':'Fail'}${hist.toolName?` · ${hist.toolName}(${hist.toolArgs||''})`:''} · ${hist.toolTotal||''}`) : '';
+    const histAuthTitle = hist ? esc(`Auth: ${hist.auth}`) : '';
     const histBadge = hist
       ? `<span style="display:inline-flex;align-items:center;gap:4px;margin-left:auto;flex-shrink:0;">
-          <span title="Chat: ${hist.chat==='pass'?'Pass':'Fail'} · TTFT ${hist.ttft||'—'} · ${hist.total||'—'} · ${hist.resp||''}" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${hist.chat==='pass'?'var(--green)':'var(--red)'};flex-shrink:0;"></span>
-          <span title="Tools: ${hist.tool==='pass'?'Pass':hist.tool==='warn'?'Partial':'Fail'}${hist.toolName?` · ${hist.toolName}(${hist.toolArgs||''})`:''} · ${hist.toolTotal||''}" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${hist.tool==='pass'?'var(--green)':hist.tool==='warn'?'var(--amber)':'var(--red)'};flex-shrink:0;"></span>
-          ${hist.auth ? `<span title="Auth: ${hist.auth}" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${hist.auth==='ok'?'var(--green)':hist.auth==='warn'?'var(--amber)':'var(--red)'};flex-shrink:0;border:1px solid rgba(255,255,255,0.1);"></span>` : ''}
-          <span style="font-size:10px;color:var(--text4);font-family:var(--font);font-feature-settings:'cv01','ss03';">${hist.ts||''}</span>
+          <span title="${histChatTitle}" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${hist.chat==='pass'?'var(--green)':'var(--red)'};flex-shrink:0;"></span>
+          <span title="${histToolTitle}" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${hist.tool==='pass'?'var(--green)':hist.tool==='warn'?'var(--amber)':'var(--red)'};flex-shrink:0;"></span>
+          ${hist.auth ? `<span title="${histAuthTitle}" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${hist.auth==='ok'?'var(--green)':hist.auth==='warn'?'var(--amber)':'var(--red)'};flex-shrink:0;border:1px solid rgba(255,255,255,0.1);"></span>` : ''}
+          <span style="font-size:10px;color:var(--text4);font-family:var(--font);font-feature-settings:'cv01','ss03';">${esc(hist.ts||'')}</span>
         </span>`
       : '';
     const histId = hk.replace(/[^a-zA-Z0-9]/g, '_');
     const hasHistLog = historyLog[hk] && historyLog[hk].length > 0;
-    const histToggle = hasHistLog ? `<span style="font-size:10px;color:var(--accent3);cursor:pointer;margin-left:4px;" onclick="event.preventDefault();event.stopPropagation();toggleHistory('${hk.replace(/'/g, "\\'")}')">&#9776;</span>` : '';
+    const histToggle = hasHistLog ? `<span style="font-size:10px;color:var(--accent3);cursor:pointer;margin-left:4px;" onclick="event.preventDefault();event.stopPropagation();toggleHistory(${jsArg(hk)})">&#9776;</span>` : '';
     const histPanel = hasHistLog ? `<div class="history-panel" id="hist-${histId}">${renderHistoryTimeline(m.id, m.channelId)}</div>` : '';
     return `<div><label class="model-row">
       <input type="checkbox" value="${esc(m.id)}" data-ch="${m.channelId}" onchange="onCheck()">
@@ -2055,10 +2116,10 @@ function getChecked() {
 
 function onCheck() {
   const c=getChecked();
-  const running = !!activeRunController;
+  const running = !!activeRunController || verifyInProgress;
   document.getElementById('btnTest').disabled=running || c.length===0;
   document.getElementById('btnVerify').disabled=running || c.length===0;
-  document.getElementById('btnCancel').disabled=!running;
+  document.getElementById('btnCancel').disabled=!activeRunController;
   document.getElementById('btnRerunFailed').disabled=running || !hasFailedResults();
   document.getElementById('selectedCount').textContent=c.length?`${c.length} ${t('selected')}`:'';
 }
@@ -2095,14 +2156,20 @@ function rerunFailed() {
 // Concurrent pool helper
 async function runPool(tasks, concurrency, shouldStop = () => false) {
   const results = [];
+  const limit = Math.max(1, Math.min(Number(concurrency) || 1, tasks.length || 1));
   let idx = 0;
   async function worker() {
     while (idx < tasks.length && !shouldStop()) {
       const i = idx++;
-      results[i] = await tasks[i]();
+      try {
+        results[i] = await tasks[i]();
+      } catch(e) {
+        console.error(e);
+        results[i] = null;
+      }
     }
   }
-  const workers = Array.from({ length: Math.min(concurrency, tasks.length) }, () => worker());
+  const workers = Array.from({ length: limit }, () => worker());
   await Promise.all(workers);
   return results;
 }
@@ -2392,7 +2459,7 @@ function renderDeepAuthDetail(r, rk) {
     const passed = dv.l4Result.testResults.filter(r => r.passed === true).length;
     const total = dv.l4Result.testResults.filter(r => r.passed !== null).length;
     const icon = passed >= total * 0.7 ? '<span style="color:var(--green)">&#10003;</span>' : passed >= total * 0.4 ? '<span style="color:var(--amber)">&#9888;</span>' : '<span style="color:var(--red)">&#10005;</span>';
-    const details = dv.l4Result.testResults.filter(r => r.passed !== null).map(r => `${r.name}:${r.passed ? '&#10003;' : '&#10005;'}`).join(' ');
+    const details = dv.l4Result.testResults.filter(r => r.passed !== null).map(r => `${esc(r.name)}:${r.passed ? '&#10003;' : '&#10005;'}`).join(' ');
     rows += `<div class="auth-detail-row"><span class="signal-icon">${icon}</span><span class="signal-label">${t('authCapability')}</span><span class="signal-value">${passed}/${total} ${t('authCapabilityDetail')} · ${details}</span></div>`;
   }
 
@@ -2693,9 +2760,12 @@ function computeDeepVerdict(l0l1Signals, l2Result, l3Results, l4Result, claimedM
 async function verifySelected() {
   const sel = getChecked();
   if (!sel.length) return;
+  verifyInProgress = true;
+  const runToken = ++verifyRunToken;
   const btn = document.getElementById('btnVerify');
   btn.disabled = true; btn.textContent = t('verifying');
   document.getElementById('btnTest').disabled = true;
+  document.getElementById('btnCancel').disabled = true;
   document.getElementById('resultsSection').style.display = 'block';
 
   const concurrency = parseInt(document.getElementById('concSelect').value) || 3;
@@ -2712,56 +2782,80 @@ async function verifySelected() {
   renderResults();
 
   async function verifyOne(s) {
-    const ch = channels[s.channelId], base = normUrl(ch), key = getApiKey(ch);
     const rk = `${s.id}::${s.channelId}`;
+    try {
+      if (runToken !== verifyRunToken || !results[rk]) return;
+      const ch = channels[s.channelId], base = normUrl(ch), key = getApiKey(ch);
+      if (!ch || !base) throw new Error('Invalid channel');
 
-    // Progress update helper
-    function setProgress(step, total) {
-      results[rk]._verifyProgress = LANG[curLang].authVerifyProgress(step, total);
-      renderResults();
+      // Progress update helper
+      function setProgress(step, total) {
+        if (runToken !== verifyRunToken || !results[rk]) return;
+        results[rk]._verifyProgress = LANG[curLang].authVerifyProgress(step, total);
+        renderResults();
+      }
+
+      setProgress(2, 4);
+      // L3: Knowledge boundary
+      const l3Results = await probeL3(base, key, s.id);
+      if (runToken !== verifyRunToken || !results[rk]) return;
+
+      setProgress(3, 4);
+      // L4: Capability fingerprint
+      const l4Result = await probeL4(base, key, s.id);
+      if (runToken !== verifyRunToken || !results[rk]) return;
+
+      setProgress(4, 4);
+      // Compute combined verdict
+      const existingSignals = results[rk].authSignals || [];
+      const deepResult = computeDeepVerdict(existingSignals, null, l3Results, l4Result, s.id);
+
+      results[rk].deepVerify = deepResult;
+      results[rk].authVerdict = deepResult.verdict;
+      results[rk].auth = deepResult.verdict;
+      results[rk]._verifyProgress = null;
+
+      // Update history
+      const hk = rk;
+      if (testHistory[hk]) {
+        testHistory[hk].auth = deepResult.verdict;
+        testHistory[hk].authScore = deepResult.score;
+        localStorage.setItem('mt_testHistory', JSON.stringify(testHistory));
+      }
+
+      // Save to history log for timeline
+      const now2 = new Date();
+      const ts2 = `${String(now2.getMonth()+1).padStart(2,'0')}-${String(now2.getDate()).padStart(2,'0')} ${String(now2.getHours()).padStart(2,'0')}:${String(now2.getMinutes()).padStart(2,'0')}`;
+      saveHistoryEntry(rk, { ts: ts2, auth: deepResult.verdict, score: deepResult.score });
+    } catch(e) {
+      if (runToken !== verifyRunToken || !results[rk]) return;
+      results[rk].auth = 'fail';
+      results[rk].authVerdict = 'fail';
+      results[rk]._verifyProgress = null;
+      results[rk].deepVerify = {
+        verdict: 'fail',
+        score: 5,
+        breakdown: [{ label: e.message || 'Verify failed', points: 5 }],
+        l3Results: [],
+        l4Result: null,
+        signals: results[rk].authSignals || []
+      };
     }
-
-    setProgress(2, 4);
-    // L3: Knowledge boundary
-    const l3Results = await probeL3(base, key, s.id);
-
-    setProgress(3, 4);
-    // L4: Capability fingerprint
-    const l4Result = await probeL4(base, key, s.id);
-
-    setProgress(4, 4);
-    // Compute combined verdict
-    const existingSignals = results[rk].authSignals || [];
-    const deepResult = computeDeepVerdict(existingSignals, null, l3Results, l4Result, s.id);
-
-    results[rk].deepVerify = deepResult;
-    results[rk].authVerdict = deepResult.verdict;
-    results[rk].auth = deepResult.verdict;
-    results[rk]._verifyProgress = null;
-
-    // Update history
-    const hk = rk;
-    if (testHistory[hk]) {
-      testHistory[hk].auth = deepResult.verdict;
-      testHistory[hk].authScore = deepResult.score;
-      localStorage.setItem('mt_testHistory', JSON.stringify(testHistory));
-    }
-
-    // Save to history log for timeline
-    const now2 = new Date();
-    const ts2 = `${String(now2.getMonth()+1).padStart(2,'0')}-${String(now2.getDate()).padStart(2,'0')} ${String(now2.getHours()).padStart(2,'0')}:${String(now2.getMinutes()).padStart(2,'0')}`;
-    saveHistoryEntry(rk, { ts: ts2, auth: deepResult.verdict, score: deepResult.score });
-
     renderResults();
   }
 
-  const tasks = sel.map(s => () => verifyOne(s));
-  await runPool(tasks, concurrency);
-
-  btn.disabled = false; btn.textContent = t('verify');
-  document.getElementById('btnTest').disabled = false;
-  onCheck();
-  toast(LANG[curLang].verifyDone(sel.length));
+  try {
+    const tasks = sel.map(s => () => verifyOne(s));
+    await runPool(tasks, concurrency);
+    if (runToken === verifyRunToken) toast(LANG[curLang].verifyDone(sel.length));
+  } finally {
+    if (runToken === verifyRunToken) {
+      verifyInProgress = false;
+      btn.disabled = false; btn.textContent = t('verify');
+      document.getElementById('btnTest').disabled = false;
+      onCheck();
+    }
+  }
 }
 
 // ── End Authenticity Detection ──
@@ -3189,18 +3283,22 @@ async function testSelected(options = {}) {
     saveHistoryEntry(rk, { ts, auth: results[rk].authVerdict || 'na' });
   }
 
-  const tasks = sel.map(s => () => testOne(s));
-  await runPool(tasks, concurrency, () => runCancelled);
-
-  const wasCancelled = runCancelled;
-  activeRunController = null;
-  runCancelled = false;
-  pw.classList.remove('on'); btn.disabled=false; btn.textContent=t('testSelected');
-  document.getElementById('btnCancel').disabled=true;
-  renderModelList();
-  renderCompatibility();
-  onCheck();
-  toast(wasCancelled ? t('cancelled') : LANG[curLang].tested(sel.length));
+  let wasCancelled = false;
+  try {
+    const tasks = sel.map(s => () => testOne(s));
+    await runPool(tasks, concurrency, () => runCancelled);
+    wasCancelled = runCancelled;
+    toast(wasCancelled ? t('cancelled') : LANG[curLang].tested(sel.length));
+  } finally {
+    wasCancelled = wasCancelled || runCancelled;
+    activeRunController = null;
+    runCancelled = false;
+    pw.classList.remove('on'); btn.disabled=false; btn.textContent=t('testSelected');
+    document.getElementById('btnCancel').disabled=true;
+    renderModelList();
+    renderCompatibility();
+    onCheck();
+  }
 }
 
 // Render results table
@@ -3240,16 +3338,16 @@ function renderResults() {
         let scoreText = `<div style="font-size:11px;color:var(--text3);margin-top:2px;">(${dv.score}${t('authConfidence')})</div>`;
         let breakdownText = '';
         if (dv.breakdown.length > 0) {
-          breakdownText = `<div style="font-size:10px;color:var(--text4);margin-top:2px;font-family:var(--mono);">${dv.breakdown.map(b => `${b.label} +${b.points}`).join(' | ')}</div>`;
+          breakdownText = `<div style="font-size:10px;color:var(--text4);margin-top:2px;font-family:var(--mono);">${dv.breakdown.map(b => `${esc(b.label)} +${esc(b.points)}`).join(' | ')}</div>`;
         }
-        authCell = `<span class="auth-badge auth-badge--${authCls}" onclick="toggleAuthDetail('${rk.replace(/'/g, "\\'")}')">${authLabel}</span>${scoreText}${breakdownText}${renderDeepAuthDetail(r, rk)}`;
+        authCell = `<span class="auth-badge auth-badge--${authCls}" onclick="toggleAuthDetail(${jsArg(rk)})">${authLabel}</span>${scoreText}${breakdownText}${renderDeepAuthDetail(r, rk)}`;
       } else {
         const authCls = r.auth === 'ok' ? 'ok' : r.auth === 'warn' ? 'warn' : 'fail';
         const authLabel = r.auth === 'ok' ? t('authOk') : r.auth === 'warn' ? t('authWarn') : t('authFail');
         const respModelTag = r.respModel && r.respModel !== r.id
           ? `<span class="resp-model-tag" title="response.model">${esc(r.respModel)}</span>`
           : '';
-        authCell = `<span class="auth-badge auth-badge--${authCls}" onclick="toggleAuthDetail('${rk.replace(/'/g, "\\'")}')">${authLabel}</span>${respModelTag}${renderAuthDetail(r.authSignals, rk)}`;
+        authCell = `<span class="auth-badge auth-badge--${authCls}" onclick="toggleAuthDetail(${jsArg(rk)})">${authLabel}</span>${respModelTag}${renderAuthDetail(r.authSignals, rk)}`;
       }
       return `<tr>
         <td class="cell-model">${esc(r.id)}</td>
@@ -3306,23 +3404,7 @@ function clearHistory() {
 }
 
 function clearAll(){
-  models=[];results={};
-  document.getElementById('modelSection').style.display='none';
-  document.getElementById('resultsSection').style.display='none';
-  document.getElementById('compatSection').style.display='none';
-  document.getElementById('fetchStatus').textContent='';
-  document.getElementById('fetchStatus').className='status-line';
-  document.getElementById('modelList').innerHTML='';
-  document.getElementById('resultsBody').innerHTML='';
-  document.getElementById('compatBody').innerHTML='';
-  document.getElementById('progressWrap').classList.remove('on');
-  document.getElementById('btnTest').disabled=true;
-  document.getElementById('btnVerify').disabled=true;
-  document.getElementById('selectedCount').textContent='';
-  document.getElementById('btnFetch').disabled=false;
-  document.getElementById('btnFetch').textContent=t('fetchModels');
-  document.getElementById('btnCancel').disabled=true;
-  document.getElementById('btnRerunFailed').disabled=true;
+  resetRuntimeState();
 }
 
 // Export Results
@@ -3391,8 +3473,6 @@ function exportResults(format) {
 
 // ── Phase 3: Compare View ──
 
-let compareActiveModel = '';
-
 function openCompare() {
   // Find models that exist in multiple channels
   const modelChannels = {};
@@ -3411,7 +3491,7 @@ function openCompare() {
   const tabsEl = document.getElementById('compareTabs');
   compareActiveModel = multiChannel[0][0];
   tabsEl.innerHTML = multiChannel.map(([modelId]) =>
-    `<button class="compare-model-tab${modelId === compareActiveModel ? ' active' : ''}" onclick="switchCompareTab('${modelId.replace(/'/g, "\\'")}')">${esc(modelId)}</button>`
+    `<button class="compare-model-tab${modelId === compareActiveModel ? ' active' : ''}" onclick="switchCompareTab(${jsArg(modelId)})">${esc(modelId)}</button>`
   ).join('');
 
   renderCompareTable();
@@ -3505,9 +3585,9 @@ function renderCompareTable() {
   const rows = dimensions.map(dim => {
     const cells = entries.map(r => {
       const cell = getCellForDimension(r, dim.key);
-      return `<td class="${cell.cls}">${cell.text}</td>`;
+      return `<td class="${cell.cls}">${safeCompareText(cell.text)}</td>`;
     }).join('');
-    return `<tr><td>${dim.label}</td>${cells}</tr>`;
+    return `<tr><td>${esc(dim.label)}</td>${cells}</tr>`;
   }).join('');
 
   document.getElementById('compareContent').innerHTML = `
@@ -3699,7 +3779,13 @@ function importFingerprints(input) {
 // ── End Phase 3 ──
 
 function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('on');setTimeout(()=>el.classList.remove('on'),2000);}
-function esc(s){if(!s)return'';const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+function esc(s){const d=document.createElement('div');d.textContent=String(s ?? '');return d.innerHTML;}
+function jsArg(s){return esc(JSON.stringify(String(s ?? '')));}
+function safeCompareText(s){
+  const htmlTokens = new Set(['&#10003;', '&#9888;', '&#8212;', '—']);
+  const text = String(s ?? '');
+  return htmlTokens.has(text) ? text : esc(text);
+}
 </script>
 </body>
 </html>
